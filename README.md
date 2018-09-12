@@ -1,2 +1,3 @@
-# SEALCGUI
-GUI for SEALC
+# SEALC-GUI
+
+- GUI for SEALC.
