@@ -46,6 +46,9 @@ static final int MODE_SD = 7;
 static final int MODE_RP = 8;
 static final int MODE_IDLE = 9;
 
+static final int MAX_SEQ = 10; // max length of sequence for beat
+static final int MAX_QUEUE = 10;
+
 Serial myPort;
 String myText, inBuffer;
 int state;
@@ -117,6 +120,7 @@ void draw() {
 			readTextBox();
 			for (int i = 0; i < nMotors; i++) {
 				motors[i].display();
+				motors[i].action();
 			}
 			break;
 	}
@@ -141,10 +145,15 @@ void keyPressed() {
 					break;
 				case ENTER:
 				case RETURN:
+					myText = myText + '\n';
 					sendText();
+					for (int i = 0; i < myText.length(); i++) {
+						processCommand(myText.charAt(i));
+					}
+					myText = "";
 					break;
 				default:
-					processCommand(key);
+					//processCommand(key);
 					myText = myText + key;
 					myText = myText.toUpperCase();
 					break;
@@ -168,8 +177,8 @@ void processCommand(char a) {
 			if (selectedMotor >= nMotors)
 				selectedMotor = nMotors - 1;
 			for (int i = 0; i < nMotors; i++)
-				motors[i].selected = false;
-			motors[selectedMotor].selected = true;
+				motors[i].setSelected(false);
+			motors[selectedMotor].setSelected(true);
 			firstChar = false;
 		} else
 			updateValue(a);
@@ -368,8 +377,7 @@ void writeTextBox(color c) {
 
 void sendText() {
 	writeTextBox(color(255, 0, 0));
-	myPort.write(myText + "\n");
-	myText = "";
+	myPort.write(myText);
 }
 
 void readTextBox() {
@@ -418,8 +426,16 @@ void sendSetup() {
 				nMotors = line.charAt(0) - 48;
 				motors = new Motor[nMotors];
 			} else {
-				motors[n - 1] = new Motor(line.charAt(0) - 48);
-				motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+				switch (line.charAt(0) - 48) {
+					case 0:
+						motors[n - 1] = new Stepper(200);
+						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						break;
+					case 1:
+						motors[n - 1] = new Servo(0, 180);
+						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						break;
+				}
 			}
 			myPort.write(line + '\n');
 			n++;
@@ -428,5 +444,5 @@ void sendSetup() {
 	} catch (IOException e) {
 		e.printStackTrace();
 	}
-	motors[selectedMotor].selected = true;
+	motors[selectedMotor].setSelected(true);
 }
