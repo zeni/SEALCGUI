@@ -4,9 +4,9 @@
  **/
 import processing.serial.*;
 
-static final int CONNECT = 0;
-static final int RUNNING = 1;
-static final int SELECT = 2;
+static final int CONNECT = 1;
+static final int RUNNING = 2;
+static final int SELECT = 0;
 
 Serial myPort;
 String myText, inBuffer;
@@ -16,7 +16,8 @@ String[] portsList;
 color bgColor, textBoxColor, textColor;
 int offsetX, offsetY;
 int offsetText;
-int textBoxWidth;
+int textBoxWidth, inTextBoxHeight;
+int textSize, textLead;
 
 void setup() {
 	size(1000, 600);
@@ -27,7 +28,6 @@ void setup() {
 	myText = "";
 	inBuffer = "";
 	textAlign(LEFT, TOP);
-	textSize(12);
 	state = SELECT;
 	portsList = Serial.list();
 	nPorts = portsList.length;
@@ -35,8 +35,12 @@ void setup() {
 	offsetY = 5;
 	offsetText = 2;
 	textBoxWidth = 400;
-	PFont myFont = loadFont("ArialMT-12.vlw");
-	textFont(myFont, 12);
+	PFont myFont = loadFont("Calibri-16.vlw");
+	textSize = 16;
+	textFont(myFont, textSize);
+	textLead = textSize + 4;
+	textLeading(textLead);
+	inTextBoxHeight = 300;
 }
 
 void draw() {
@@ -46,13 +50,14 @@ void draw() {
 			selectPort();
 			break;
 		case CONNECT:
-			char a = 0;
-			while (myPort.available() > 0) {
-				a = myPort.readChar();
-			}
-			if (a == '<') {
-				sendSetup();
-				state = RUNNING;
+			//char a = 0;
+			while (myPort.available() > 0)
+				inBuffer += myPort.readString();
+			if (inBuffer.length() > 0) {
+				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
+					sendSetup();
+					state = RUNNING;
+				}
 			}
 			break;
 		case RUNNING:
@@ -73,9 +78,8 @@ void keyPressed() {
 		case RUNNING:
 			switch (key) {
 				case BACKSPACE:
-					if (myText.length() > 0) {
+					if (myText.length() > 0)
 						myText = myText.substring(0, myText.length() - 1);
-					}
 					break;
 				case DELETE:
 					myText = "";
@@ -86,6 +90,7 @@ void keyPressed() {
 					break;
 				default:
 					myText = myText + key;
+					myText = myText.toUpperCase();
 					break;
 			}
 			break;
@@ -95,9 +100,19 @@ void keyPressed() {
 void writeTextBox(color c) {
 	fill(c);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, 20);
-	fill(textColor);
-	text(myText, offsetX + offsetText, offsetY + offsetText, textBoxWidth, 20);
+	rect(offsetX, offsetY, textBoxWidth, textLead);
+	textAlign(LEFT, CENTER);
+	for (int i = 0; i < myText.length(); i++) {
+		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58)) {
+			fill(textColor);
+		} else if ((myText.charAt(i) >= 65) && (myText.charAt(i) < 91)) {
+			fill(color(255, 0, 0));
+		} else
+			fill(color(0, 255, 0));
+		int w = int(textWidth(myText.substring(0, i)));
+		text(myText.substring(i, i + 1), offsetX + offsetText + w, offsetY, textBoxWidth, textLead);
+	}
+	textAlign(LEFT, TOP);
 }
 
 void sendText() {
@@ -107,20 +122,31 @@ void sendText() {
 }
 
 void readTextBox() {
-	while (myPort.available() > 0) {
+	while (myPort.available() > 0)
 		inBuffer += myPort.readString();
-	}
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY + 25, textBoxWidth, 300);
+	rect(offsetX, offsetY + 25, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
-	text(inBuffer, offsetX + offsetText, offsetY + 25 + offsetText, textBoxWidth, 300);
+	scrollText();
+	text(inBuffer, offsetX + offsetText, offsetY + 25 + offsetText, textBoxWidth, inTextBoxHeight);
+}
+
+void scrollText() {
+	int nLines = 0;
+	for (int i = 0; i < inBuffer.length(); i++) {
+		if (inBuffer.charAt(i) == '\n') nLines++;
+	}
+	if (nLines * textLead > inTextBoxHeight) {
+		int a = inBuffer.indexOf('\n');
+		inBuffer = inBuffer.substring(a + 1);
+	}
 }
 
 void selectPort() {
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, 300);
+	rect(offsetX, offsetY, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	String portsListString = "Please select port:\n";
 	for (int i = 0; i < nPorts; i++) {
