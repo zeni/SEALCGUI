@@ -1,8 +1,26 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import processing.serial.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class SEALCGUI extends PApplet {
+
 /**
  * GUI for SEALC
  *
  **/
-import processing.serial.*;
+
 
 static final int CONNECT = 0;
 static final int RUNNING = 1;
@@ -13,13 +31,13 @@ String myText, inBuffer;
 int state;
 int nPorts;
 String[] portsList;
-color bgColor, textBoxColor, textColor;
+int bgColor, textBoxColor, textColor;
 int offsetX, offsetY;
 int offsetText;
 int textBoxWidth;
 
-void setup() {
-	size(1000, 600);
+public void setup() {
+	
 	bgColor = color(40);
 	textBoxColor = color(20);
 	textColor = color(230);
@@ -39,7 +57,7 @@ void setup() {
 	textFont(myFont, 12);
 }
 
-void draw() {
+public void draw() {
 	background(bgColor);
 	switch (state) {
 		case SELECT:
@@ -62,11 +80,11 @@ void draw() {
 	}
 }
 
-void keyPressed() {
+public void keyPressed() {
 	switch (state) {
 		case SELECT:
-			if ((int(key) >= 48) && (int(key) <= 48 + nPorts - 1)) {
-				myPort = new Serial(this, portsList[int(key) - 48], 115200);
+			if ((PApplet.parseInt(key) >= 48) && (PApplet.parseInt(key) <= 48 + nPorts - 1)) {
+				myPort = new Serial(this, portsList[PApplet.parseInt(key) - 48], 115200);
 				state = CONNECT;
 			}
 			break;
@@ -92,7 +110,7 @@ void keyPressed() {
 	}
 }
 
-void writeTextBox(color c) {
+public void writeTextBox(int c) {
 	fill(c);
 	noStroke();
 	rect(offsetX, offsetY, textBoxWidth, 20);
@@ -100,13 +118,13 @@ void writeTextBox(color c) {
 	text(myText, offsetX + offsetText, offsetY + offsetText, textBoxWidth, 20);
 }
 
-void sendText() {
+public void sendText() {
 	writeTextBox(color(255, 0, 0));
 	myPort.write(myText + "\n");
 	myText = "";
 }
 
-void readTextBox() {
+public void readTextBox() {
 	while (myPort.available() > 0) {
 		inBuffer += myPort.readString();
 	}
@@ -117,7 +135,7 @@ void readTextBox() {
 	text(inBuffer, offsetX + offsetText, offsetY + 25 + offsetText, textBoxWidth, 300);
 }
 
-void selectPort() {
+public void selectPort() {
 	fill(textBoxColor);
 	noStroke();
 	rect(offsetX, offsetY, textBoxWidth, 300);
@@ -131,7 +149,7 @@ void selectPort() {
 	text(portsListString, offsetX + offsetText, offsetY + offsetText, textBoxWidth, 200);
 }
 
-void sendSetup() {
+public void sendSetup() {
 	BufferedReader reader = createReader("setup.txt");
 	String line = null;
 	try {
@@ -142,4 +160,26 @@ void sendSetup() {
 	} catch (IOException e) {
 		e.printStackTrace();
 	}
+}
+class Stepper {
+	int xPos, yPos;
+	int radius;
+	Stepper(int x, int y, int r) {
+		xPos = x;
+		yPos = y;
+		radius = r;
+	}
+	public void display() {
+		ellipse(xPos, yPos, radius, radius);
+	}
+}
+  public void settings() { 	size(1000, 600); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "SEALCGUI" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
 }
