@@ -68,7 +68,8 @@ int currentValue, selectedMotor;
 int currentCommand;
 
 void setup() {
-	size(1000, 600);
+	size(1000, 600, P3D);
+	frameRate(1000);
 	bgColor = color(40);
 	textBoxColor = color(20);
 	textColor = color(230);
@@ -426,13 +427,18 @@ void sendSetup() {
 				nMotors = line.charAt(0) - 48;
 				motors = new Motor[nMotors];
 			} else {
-				switch (line.charAt(0) - 48) {
+				String[] args = line.split(",");
+				switch (int(args[0])) {
 					case 0:
-						motors[n - 1] = new Stepper(200);
+						motors[n - 1] = new Stepper(int(args[1]));
 						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
 						break;
 					case 1:
-						motors[n - 1] = new Servo(0, 180);
+						motors[n - 1] = new Servo(int(args[2]), int(args[3]));
+						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						break;
+					case 2:
+						motors[n - 1] = new Vibro();
 						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
 						break;
 				}

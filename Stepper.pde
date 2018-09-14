@@ -7,7 +7,6 @@ class Stepper implements Motor {
     int id;
     int nSteps;
     int mode;
-    int nextMode;
     int steps; // for move/hammer
     int stepsHome; // steps for homing
     int dir;
@@ -38,7 +37,6 @@ class Stepper implements Motor {
         angleSeq = 0;
         speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
         mode = MODE_IDLE;
-        nextMode = mode;
         speedRPM = 12;
         currentSteps = 0;
         steps = 0;
@@ -50,9 +48,9 @@ class Stepper implements Motor {
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
-        timeMS = millis();
         pause = 1000;
         isPaused = false;
+        timeMS = millis();
     }
 
     void setGraphics(int x, int y, int r) {
@@ -62,21 +60,26 @@ class Stepper implements Motor {
     }
 
     void display() {
-        //println(mode);
-        if (mode == MODE_RO)
-            fill(255);
-        else
-            noFill();
+        noFill();
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
-        line(xPos, yPos - radius, xPos, yPos + radius);
-        line(xPos - radius, yPos, xPos + radius, yPos);
+        pushMatrix();
+        translate(xPos, yPos);
+        rotateZ(radians(360.0 * currentSteps / nSteps));
+        ellipse(0, 0, 2 * radius, 2 * radius);
+        line(0, -radius, 0, 0 + radius);
+        line(0 - radius, 0, 0 + radius, 0);
+        popMatrix();
     }
 
     String getType() {
         return " (stepper)";
+    }
+
+    void SS(int v) {
+        speedRPM = (v > 0) ? v : 0;
+        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
     }
 
     void setSD(int v) {
@@ -175,16 +178,12 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    // one step stepper
-    void stepperStep() {}
-
     // move one step
     void moveStep() {
         if (currentSteps >= steps) {
             ST();
         } else {
             currentSteps++;
-            stepperStep();
             timeMS = millis();
         }
     }
@@ -234,14 +233,11 @@ class Stepper implements Motor {
 
     // rotation
     void RO() {
-        fill(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
         if (speed > 0) {
-            if ((millis() - timeMS) > speed) {
+            if ((millis() - timeMS) >= speed) {
                 if (turns == 0) {
                     currentSteps++;
                     currentSteps %= nSteps;
-                    stepperStep();
                     if (currentSteps == 0)
                         deQ();
                     timeMS = millis();
@@ -267,10 +263,8 @@ class Stepper implements Motor {
                         isPaused = true;
                         currentSteps = 0;
                         deQ();
-                    } else {
+                    } else
                         currentSteps++;
-                        stepperStep();
-                    }
                     timeMS = millis();
                 }
             }
@@ -304,7 +298,6 @@ class Stepper implements Motor {
                     if (realSteps == 0)
                         deQ();
                     currentSteps++;
-                    stepperStep();
                     timeMS = millis();
                 }
             }
@@ -354,8 +347,7 @@ class Stepper implements Motor {
                 } else {
                     int a = floor(indexSeq / 2);
                     currentSteps++;
-                    if (seq[a] > 0)
-                        stepperStep();
+                    if (seq[a] > 0);
                     timeMS = millis();
                 }
             }
@@ -382,15 +374,7 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    void setNextMode(int m) {
-
-    }
-    void SS(int v) {
-
-    }
-    void GI(int v) {
-
-    }
+    void GI(int v) {}
 
     void deQ() {
         switch (modesQ[0]) {
@@ -434,20 +418,13 @@ class Stepper implements Motor {
         }
     }
 
-    void GS() {
+    void GS() {}
 
-    }
+    void VA() {}
 
-    void VA() {
+    void GM() {}
 
-    }
-    void GM() {
-
-    }
-
-    void GD() {
-
-    }
+    void GD() {}
 
     void fillQ(int m, int v) {
         modesQ[sizeQ] = m;

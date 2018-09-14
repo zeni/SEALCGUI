@@ -87,6 +87,7 @@ int currentCommand;
 
 public void setup() {
 	
+	frameRate(1000);
 	bgColor = color(40);
 	textBoxColor = color(20);
 	textColor = color(230);
@@ -118,6 +119,7 @@ public void setup() {
 
 public void draw() {
 	background(bgColor);
+	println(frameRate);
 	switch (state) {
 		case STATE_SELECT:
 			selectPort();
@@ -444,13 +446,18 @@ public void sendSetup() {
 				nMotors = line.charAt(0) - 48;
 				motors = new Motor[nMotors];
 			} else {
-				switch (line.charAt(0) - 48) {
+				String[] args = line.split(",");
+				switch (PApplet.parseInt(args[0])) {
 					case 0:
-						motors[n - 1] = new Stepper(200);
+						motors[n - 1] = new Stepper(PApplet.parseInt(args[1]));
 						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
 						break;
 					case 1:
-						motors[n - 1] = new Servo(0, 180);
+						motors[n - 1] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]));
+						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						break;
+					case 2:
+						motors[n - 1] = new Vibro();
 						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
 						break;
 				}
@@ -485,7 +492,6 @@ interface Motor {
     public void action();
     public void setSD(int v);
     public String getType();
-    public void setNextMode(int m);
     public void GS();
     public void GD();
     public void GM();
@@ -502,7 +508,6 @@ class Servo implements Motor {
     int id;
     int nSteps;
     int mode;
-    int nextMode;
     int steps; // for move/hammer
     int stepsHome; // steps for homing
     int dir;
@@ -549,6 +554,11 @@ class Servo implements Motor {
         line(xPos, yPos - radius, xPos, yPos + radius);
     }
 
+    public void SS(int v) {
+        speedRPM = (v > 0) ? v : 0;
+        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+    }
+
     public String getType() {
         return " (servo)";
     }
@@ -559,17 +569,13 @@ class Servo implements Motor {
         mode = MODE_SD;
     }
 
-    public void setRO(int v) {
-        mode = MODE_RO;
-    }
+    public void setRO(int v) {}
 
     public void initRP() {}
 
     public void columnRP(int v) {}
 
-    public void setRP(int v) {
-        mode = MODE_RP;
-    }
+    public void setRP(int v) {}
 
     public void setRR(int v) {
         v = (v <= 0) ? 0 : (v % (angleMax - angleMin));
@@ -595,9 +601,7 @@ class Servo implements Motor {
         timeMS = millis();
     }
 
-    public void setRW(int v) {
-        mode = MODE_RW;
-    }
+    public void setRW(int v) {}
 
     public void initSQ() {
         angleSeq = 0;
@@ -666,13 +670,16 @@ class Servo implements Motor {
 
     public void action() {
         switch (mode) {
-            case MODE_RO:
-            case MODE_RP:
-            case MODE_RW:
+            case MODE_IDLE:
+                deQ();
+                break;
             case MODE_ST:
                 ST();
                 break;
-            case MODE_IDLE:
+            case MODE_SD:
+            case MODE_RW:
+            case MODE_RO:
+            case MODE_RP:
                 break;
             case MODE_RA:
             case MODE_RR:
@@ -759,13 +766,9 @@ class Servo implements Motor {
             isPaused = true;
     }
 
-    public void GM() {
+    public void GM() {}
 
-    }
-
-    public void GD() {
-
-    }
+    public void GD() {}
 
     public void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
@@ -778,15 +781,7 @@ class Servo implements Motor {
         selected = s;
     }
 
-    public void setNextMode(int m) {
-
-    }
-    public void SS(int v) {
-
-    }
-    public void GI(int v) {
-
-    }
+    public void GI(int v) {}
 
     public void deQ() {
         switch (modesQ[0]) {
@@ -844,13 +839,9 @@ class Servo implements Motor {
         timeMS = millis();
     }
 
-    public void GS() {
+    public void GS() {}
 
-    }
-
-    public void VA() {
-
-    }
+    public void VA() {}
 }
 class Stepper implements Motor {
     int waveDir; // increasing / decreasing speed
@@ -861,7 +852,6 @@ class Stepper implements Motor {
     int id;
     int nSteps;
     int mode;
-    int nextMode;
     int steps; // for move/hammer
     int stepsHome; // steps for homing
     int dir;
@@ -892,7 +882,6 @@ class Stepper implements Motor {
         angleSeq = 0;
         speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
         mode = MODE_IDLE;
-        nextMode = mode;
         speedRPM = 12;
         currentSteps = 0;
         steps = 0;
@@ -904,9 +893,9 @@ class Stepper implements Motor {
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
-        timeMS = millis();
         pause = 1000;
         isPaused = false;
+        timeMS = millis();
     }
 
     public void setGraphics(int x, int y, int r) {
@@ -916,21 +905,26 @@ class Stepper implements Motor {
     }
 
     public void display() {
-        //println(mode);
-        if (mode == MODE_RO)
-            fill(255);
-        else
-            noFill();
+        noFill();
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
-        line(xPos, yPos - radius, xPos, yPos + radius);
-        line(xPos - radius, yPos, xPos + radius, yPos);
+        pushMatrix();
+        translate(xPos, yPos);
+        rotateZ(radians(360.0f * currentSteps / nSteps));
+        ellipse(0, 0, 2 * radius, 2 * radius);
+        line(0, -radius, 0, 0 + radius);
+        line(0 - radius, 0, 0 + radius, 0);
+        popMatrix();
     }
 
     public String getType() {
         return " (stepper)";
+    }
+
+    public void SS(int v) {
+        speedRPM = (v > 0) ? v : 0;
+        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
     }
 
     public void setSD(int v) {
@@ -1029,16 +1023,12 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    // one step stepper
-    public void stepperStep() {}
-
     // move one step
     public void moveStep() {
         if (currentSteps >= steps) {
             ST();
         } else {
             currentSteps++;
-            stepperStep();
             timeMS = millis();
         }
     }
@@ -1088,14 +1078,11 @@ class Stepper implements Motor {
 
     // rotation
     public void RO() {
-        fill(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
         if (speed > 0) {
-            if ((millis() - timeMS) > speed) {
+            if ((millis() - timeMS) >= speed) {
                 if (turns == 0) {
                     currentSteps++;
                     currentSteps %= nSteps;
-                    stepperStep();
                     if (currentSteps == 0)
                         deQ();
                     timeMS = millis();
@@ -1121,10 +1108,8 @@ class Stepper implements Motor {
                         isPaused = true;
                         currentSteps = 0;
                         deQ();
-                    } else {
+                    } else
                         currentSteps++;
-                        stepperStep();
-                    }
                     timeMS = millis();
                 }
             }
@@ -1158,7 +1143,6 @@ class Stepper implements Motor {
                     if (realSteps == 0)
                         deQ();
                     currentSteps++;
-                    stepperStep();
                     timeMS = millis();
                 }
             }
@@ -1208,8 +1192,7 @@ class Stepper implements Motor {
                 } else {
                     int a = floor(indexSeq / 2);
                     currentSteps++;
-                    if (seq[a] > 0)
-                        stepperStep();
+                    if (seq[a] > 0);
                     timeMS = millis();
                 }
             }
@@ -1236,14 +1219,280 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    public void setNextMode(int m) {
+    public void GI(int v) {}
 
+    public void deQ() {
+        switch (modesQ[0]) {
+            case MODE_IDLE:
+                break;
+            case MODE_ST:
+                mode = modesQ[0];
+                break;
+            case MODE_RO:
+                setRO(valuesQ[0]);
+                break;
+            case MODE_RP:
+                setRP(valuesQ[0]);
+                break;
+            case MODE_RA:
+            case MODE_RR:
+                setRA(valuesQ[0]);
+                break;
+            case MODE_RW:
+                setRW(valuesQ[0]);
+                break;
+            case MODE_SQ:
+                setSQ(valuesQ[0]);
+                break;
+            case MODE_SD:
+                setSD(valuesQ[0]);
+                break;
+            case MODE_WA:
+                setWA(valuesQ[0]);
+                break;
+        }
+        if (modesQ[0] != MODE_IDLE) {
+            for (int i = 1; i < MAX_QUEUE; i++) {
+                modesQ[i - 1] = modesQ[i];
+                valuesQ[i - 1] = valuesQ[i];
+            }
+            modesQ[MAX_QUEUE - 1] = MODE_IDLE;
+            valuesQ[MAX_QUEUE - 1] = -1;
+            sizeQ--;
+            sizeQ = (sizeQ < 0) ? 0 : sizeQ;
+        }
     }
-    public void SS(int v) {
 
+    public void GS() {}
+
+    public void VA() {}
+
+    public void GM() {}
+
+    public void GD() {}
+
+    public void fillQ(int m, int v) {
+        modesQ[sizeQ] = m;
+        valuesQ[sizeQ] = v;
+        sizeQ++;
+        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
     }
-    public void GI(int v) {
+}
+class Vibro implements Motor {
+    int duration;
+    boolean isOn;
+    int[] durationSeq = new int[MAX_SEQ];
+    int[] stateSeq = new int[MAX_SEQ];
+    int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int id;
+    int mode;
+    int indexSeq; // current position in sequence
+    int lengthSeq; // length of seq.
+    long timeMS; // for speed
+    boolean newBeat;
+    int[] modesQ = new int[MAX_QUEUE];
+    int[] valuesQ = new int[MAX_QUEUE];
+    int sizeQ;
+    int pause;
+    boolean isPaused;
+    int xPos, yPos;
+    int radius;
+    int type;
+    boolean selected;
 
+    Vibro() {
+        isOn = false;
+        mode = MODE_IDLE;
+        for (int j = 0; j < MAX_SEQ; j++) {
+            durationSeq[j] = 0;
+            stateSeq[j] = 0;
+        }
+        for (int j = 0; j < MAX_QUEUE; j++)
+            modesQ[j] = MODE_IDLE;
+        sizeQ = 0;
+        indexSeq = 0;
+        lengthSeq = 0;
+        pause = 1000;
+        isPaused = false;
+        timeMS = millis();
+    }
+
+    public void setGraphics(int x, int y, int r) {
+        xPos = x;
+        yPos = y;
+        radius = r;
+    }
+
+    public void display() {
+        noFill();
+        if (selected)
+            stroke(255, 0, 0);
+        else stroke(255);
+        if (isOn)
+            ellipse(xPos + random(5), yPos + random(5), 2 * radius, 2 * radius);
+        else
+            ellipse(xPos, yPos, 2 * radius, 2 * radius);
+    }
+
+    public String getType() {
+        return " (vibro)";
+    }
+
+    public void setRO(int v) {
+        duration = (v <= 0) ? 0 : v;
+        mode = MODE_RO;
+        timeMS = millis();
+    }
+
+    public void initRP() {
+        duration = 1000;
+        pause = 1000;
+        isPaused = false;
+    }
+
+    public void columnRP(int v) {
+        duration = (v <= 0) ? 1 : v;
+    }
+
+    public void setRP(int v) {
+        isPaused = false;
+        pause = (v <= 0) ? 1000 : v;
+        duration = (duration <= 0) ? 1000 : duration;
+        mode = MODE_RP;
+        timeMS = millis();
+    }
+
+    public void initSQ() {
+        indexSeq = 0;
+        lengthSeq = 0;
+        newBeat = true;
+    }
+
+    public void columnSQ(int v) {
+        if (indexSeq % 2 == 0) {
+            v = (v <= 0) ? 0 : v;
+            durationSeq[indexSeq / 2] = v;
+        } else {
+            v = (v <= 0) ? 0 : 1;
+            stateSeq[(indexSeq - 1) / 2] = v;
+        }
+        indexSeq++;
+    }
+
+    public void setSQ(int v) {
+        v = (v <= 0) ? 0 : 1;
+        stateSeq[(indexSeq - 1) / 2] = v;
+        indexSeq++;
+        lengthSeq = indexSeq / 2;
+        indexSeq = 0;
+        mode = MODE_SQ;
+        timeMS = millis();
+    }
+
+    public void action() {
+        switch (mode) {
+            case MODE_IDLE:
+                deQ();
+                break;
+            case MODE_ST:
+                ST();
+                break;
+            case MODE_SD:
+            case MODE_RA:
+            case MODE_RR:
+            case MODE_RW:
+                break;
+            case MODE_RO:
+                RO();
+                break;
+            case MODE_RP:
+                RP();
+                break;
+            case MODE_SQ:
+                SQ();
+                break;
+            case MODE_WA:
+                WA();
+                break;
+        }
+    }
+
+    // rotation
+    public void RO() {
+        if (!isOn)
+            isOn = true;
+        if (duration == 0)
+            deQ();
+        else {
+            if ((millis() - timeMS) > duration)
+                ST();
+        }
+    }
+
+    // rotation with pause
+    public void RP() {
+        if (isPaused) {
+            if ((millis() - timeMS) > pause) {
+                isPaused = false;
+                isOn = true;
+                timeMS = millis();
+            } else
+                deQ();
+        } else {
+            if (!isOn)
+                isOn = true;
+            if ((millis() - timeMS) > duration) {
+                isPaused = true;
+                isOn = false;
+                deQ();
+                timeMS = millis();
+            }
+        }
+    }
+
+    public void ST() {
+        isOn = false;
+        mode = MODE_IDLE;
+        deQ();
+    }
+
+    // continuous hammer movement with pattern of angles
+    public void SQ() {
+        if (newBeat) {
+            deQ();
+            isOn = stateSeq[indexSeq] > 0;
+            newBeat = false;
+        }
+        if ((millis() - timeMS) > durationSeq[indexSeq]) {
+            newBeat = true;
+            indexSeq++;
+            if (indexSeq >= lengthSeq)
+                indexSeq = 0;
+            timeMS = millis();
+        }
+    }
+
+    public void WA() {
+        if (isPaused) {
+            if ((millis() - timeMS) > pause) {
+                isPaused = false;
+                ST();
+            }
+        } else {
+            isPaused = true;
+            isOn = false;
+        }
+    }
+
+    public void setSelected(boolean s) {
+        selected = s;
+    }
+
+    public void fillQ(int m, int v) {
+        modesQ[sizeQ] = m;
+        valuesQ[sizeQ] = v;
+        sizeQ++;
+        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
     }
 
     public void deQ() {
@@ -1288,29 +1537,44 @@ class Stepper implements Motor {
         }
     }
 
-    public void GS() {
-
+    public void initWA() {
+        pause = 1000;
+        isPaused = false;
     }
 
-    public void VA() {
-
-    }
-    public void GM() {
-
-    }
-
-    public void GD() {
-
+    public void setWA(int v) {
+        isPaused = false;
+        v = (v < 0) ? 1000 : v;
+        pause = v;
+        mode = MODE_WA;
+        timeMS = millis();
     }
 
-    public void fillQ(int m, int v) {
-        modesQ[sizeQ] = m;
-        valuesQ[sizeQ] = v;
-        sizeQ++;
-        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
-    }
+    public void GS() {}
+
+    public void VA() {}
+
+    public void SS(int v) {}
+
+    public void GI(int v) {}
+
+    public void GM() {}
+
+    public void GD() {}
+
+    public void SD() {}
+
+    public void RA() {}
+
+    public void setRR(int v) {}
+
+    public void setRA(int v) {}
+
+    public void setRW(int v) {}
+
+    public void setSD(int v) {}
 }
-  public void settings() { 	size(1000, 600); }
+  public void settings() { 	size(1000, 600, P3D); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "SEALCGUI" };
     if (passedArgs != null) {

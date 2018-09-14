@@ -6,7 +6,6 @@ class Servo implements Motor {
     int id;
     int nSteps;
     int mode;
-    int nextMode;
     int steps; // for move/hammer
     int stepsHome; // steps for homing
     int dir;
@@ -53,6 +52,11 @@ class Servo implements Motor {
         line(xPos, yPos - radius, xPos, yPos + radius);
     }
 
+    void SS(int v) {
+        speedRPM = (v > 0) ? v : 0;
+        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+    }
+
     String getType() {
         return " (servo)";
     }
@@ -63,17 +67,13 @@ class Servo implements Motor {
         mode = MODE_SD;
     }
 
-    void setRO(int v) {
-        mode = MODE_RO;
-    }
+    void setRO(int v) {}
 
     void initRP() {}
 
     void columnRP(int v) {}
 
-    void setRP(int v) {
-        mode = MODE_RP;
-    }
+    void setRP(int v) {}
 
     void setRR(int v) {
         v = (v <= 0) ? 0 : (v % (angleMax - angleMin));
@@ -99,9 +99,7 @@ class Servo implements Motor {
         timeMS = millis();
     }
 
-    void setRW(int v) {
-        mode = MODE_RW;
-    }
+    void setRW(int v) {}
 
     void initSQ() {
         angleSeq = 0;
@@ -170,13 +168,16 @@ class Servo implements Motor {
 
     void action() {
         switch (mode) {
-            case MODE_RO:
-            case MODE_RP:
-            case MODE_RW:
+            case MODE_IDLE:
+                deQ();
+                break;
             case MODE_ST:
                 ST();
                 break;
-            case MODE_IDLE:
+            case MODE_SD:
+            case MODE_RW:
+            case MODE_RO:
+            case MODE_RP:
                 break;
             case MODE_RA:
             case MODE_RR:
@@ -263,13 +264,9 @@ class Servo implements Motor {
             isPaused = true;
     }
 
-    void GM() {
+    void GM() {}
 
-    }
-
-    void GD() {
-
-    }
+    void GD() {}
 
     void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
@@ -282,15 +279,7 @@ class Servo implements Motor {
         selected = s;
     }
 
-    void setNextMode(int m) {
-
-    }
-    void SS(int v) {
-
-    }
-    void GI(int v) {
-
-    }
+    void GI(int v) {}
 
     void deQ() {
         switch (modesQ[0]) {
@@ -348,11 +337,7 @@ class Servo implements Motor {
         timeMS = millis();
     }
 
-    void GS() {
+    void GS() {}
 
-    }
-
-    void VA() {
-
-    }
+    void VA() {}
 }

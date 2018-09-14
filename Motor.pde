@@ -19,7 +19,6 @@ interface Motor {
     void action();
     void setSD(int v);
     String getType();
-    void setNextMode(int m);
     void GS();
     void GD();
     void GM();
