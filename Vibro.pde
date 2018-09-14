@@ -20,7 +20,8 @@ class Vibro implements Motor {
     int type;
     boolean selected;
 
-    Vibro() {
+    Vibro(int i) {
+        id = i;
         isOn = false;
         mode = MODE_IDLE;
         for (int j = 0; j < MAX_SEQ; j++) {
@@ -270,17 +271,7 @@ class Vibro implements Motor {
         timeMS = millis();
     }
 
-    void GS() {}
-
-    void VA() {}
-
     void SS(int v) {}
-
-    void GI(int v) {}
-
-    void GM() {}
-
-    void GD() {}
 
     void SD() {}
 

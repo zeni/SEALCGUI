@@ -45,10 +45,6 @@ static final int COMMAND_RW = 7; // Rotate Wave
 static final int COMMAND_SQ = 8; // SeQuence
 static final int COMMAND_ERROR = 9;
 static final int COMMAND_RP = 10; // Rotate Pause
-static final int COMMAND_GS = 11; // Get Speed
-static final int COMMAND_GD = 12; // Get Direction
-static final int COMMAND_GM = 13; // Get Mode
-static final int COMMAND_GI = 14; // Get Id
 static final int COMMAND_SA = 15; // Stop All
 static final int COMMAND_RR = 16; // Rotate Angle (stepper) / Rotate Relative (servo)
 static final int COMMAND_WA = 17; // WAit command (ms)
@@ -119,7 +115,6 @@ public void setup() {
 
 public void draw() {
 	background(bgColor);
-	println(frameRate);
 	switch (state) {
 		case STATE_SELECT:
 			selectPort();
@@ -258,18 +253,6 @@ public void processCommand(char a) {
 					case COMMAND_WA:
 						motors[selectedMotor].fillQ(MODE_WA, currentValue);
 						break;
-					case COMMAND_GS:
-						motors[selectedMotor].GS();
-						break;
-					case COMMAND_GD:
-						motors[selectedMotor].GD();
-						break;
-					case COMMAND_GM:
-						motors[selectedMotor].GM();
-						break;
-					case COMMAND_GI:
-						motors[selectedMotor].GI(selectedMotor);
-						break;
 					case COMMAND_SA:
 						for (int i = 0; i < nMotors; i++) {
 							motors[i].ST();
@@ -334,27 +317,6 @@ public void processCommand(char a) {
 					case 'P':
 						currentCommand = COMMAND_RP; //RP
 						//motors[selectedMotor]->initRP();
-						break;
-				}
-				break;
-			case 'g':
-			case 'G':
-				switch (command[1]) {
-					case 's':
-					case 'S':
-						currentCommand = COMMAND_GS; //GS
-						break;
-					case 'd':
-					case 'D':
-						currentCommand = COMMAND_GD; //GD
-						break;
-					case 'm':
-					case 'M':
-						currentCommand = COMMAND_GM; //GM
-						break;
-					case 'i':
-					case 'I':
-						currentCommand = COMMAND_GI; //GI
 						break;
 				}
 				break;
@@ -449,16 +411,16 @@ public void sendSetup() {
 				String[] args = line.split(",");
 				switch (PApplet.parseInt(args[0])) {
 					case 0:
-						motors[n - 1] = new Stepper(PApplet.parseInt(args[1]));
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Stepper(PApplet.parseInt(args[1]), n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 1:
-						motors[n - 1] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]));
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]), n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 2:
-						motors[n - 1] = new Vibro();
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Vibro(n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 				}
 			}
@@ -484,7 +446,6 @@ interface Motor {
     public void setRR(int v);
     public void setRW(int v);
     public void setWA(int v);
-    public void VA();
     public void initSQ();
     public void setSQ(int v);
     public void columnRP(int v);
@@ -492,10 +453,6 @@ interface Motor {
     public void action();
     public void setSD(int v);
     public String getType();
-    public void GS();
-    public void GD();
-    public void GM();
-    public void GI(int i);
     public void fillQ(int m, int v);
     public void deQ();
     public void initWA();
@@ -529,7 +486,8 @@ class Servo implements Motor {
     int type;
     boolean selected;
 
-    Servo(int amin, int amax) {
+    Servo(int amin, int amax, int i) {
+        id = i;
         angleMin = amin;
         angleMax = amax;
         nSteps = 360;
@@ -766,10 +724,6 @@ class Servo implements Motor {
             isPaused = true;
     }
 
-    public void GM() {}
-
-    public void GD() {}
-
     public void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
         valuesQ[sizeQ] = v;
@@ -780,8 +734,6 @@ class Servo implements Motor {
     public void setSelected(boolean s) {
         selected = s;
     }
-
-    public void GI(int v) {}
 
     public void deQ() {
         switch (modesQ[0]) {
@@ -838,10 +790,6 @@ class Servo implements Motor {
         mode = MODE_WA;
         timeMS = millis();
     }
-
-    public void GS() {}
-
-    public void VA() {}
 }
 class Stepper implements Motor {
     int waveDir; // increasing / decreasing speed
@@ -873,7 +821,8 @@ class Stepper implements Motor {
     int type;
     boolean selected;
 
-    Stepper(int n) {
+    Stepper(int n, int i) {
+        id = i;
         waveDir = 0;
         nSteps = n;
         realSteps = currentSteps;
@@ -908,13 +857,62 @@ class Stepper implements Motor {
         noFill();
         if (selected)
             stroke(255, 0, 0);
-        else stroke(255);
+        else
+            stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        rotateZ(radians(360.0f * currentSteps / nSteps));
+        if (currentDir == 0)
+            rotateZ(radians(360.0f * currentSteps / nSteps));
+        else
+            rotateZ(radians(-360.0f * currentSteps / nSteps));
         ellipse(0, 0, 2 * radius, 2 * radius);
         line(0, -radius, 0, 0 + radius);
         line(0 - radius, 0, 0 + radius, 0);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Speed: " + speedRPM + "RPM\n";
+        s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+
+        text(s, 0, 0);
         popMatrix();
     }
 
@@ -934,7 +932,6 @@ class Stepper implements Motor {
     }
 
     public void setRO(int v) {
-        println(mode);
         if (v <= 0) {
             turns = 0;
         } else {
@@ -1219,8 +1216,6 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    public void GI(int v) {}
-
     public void deQ() {
         switch (modesQ[0]) {
             case MODE_IDLE:
@@ -1263,20 +1258,13 @@ class Stepper implements Motor {
         }
     }
 
-    public void GS() {}
-
-    public void VA() {}
-
-    public void GM() {}
-
-    public void GD() {}
-
     public void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
         valuesQ[sizeQ] = v;
         sizeQ++;
         sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
     }
+
 }
 class Vibro implements Motor {
     int duration;
@@ -1300,7 +1288,8 @@ class Vibro implements Motor {
     int type;
     boolean selected;
 
-    Vibro() {
+    Vibro(int i) {
+        id = i;
         isOn = false;
         mode = MODE_IDLE;
         for (int j = 0; j < MAX_SEQ; j++) {
@@ -1550,17 +1539,7 @@ class Vibro implements Motor {
         timeMS = millis();
     }
 
-    public void GS() {}
-
-    public void VA() {}
-
     public void SS(int v) {}
-
-    public void GI(int v) {}
-
-    public void GM() {}
-
-    public void GD() {}
 
     public void SD() {}
 

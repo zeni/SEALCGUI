@@ -27,7 +27,8 @@ class Servo implements Motor {
     int type;
     boolean selected;
 
-    Servo(int amin, int amax) {
+    Servo(int amin, int amax, int i) {
+        id = i;
         angleMin = amin;
         angleMax = amax;
         nSteps = 360;
@@ -264,10 +265,6 @@ class Servo implements Motor {
             isPaused = true;
     }
 
-    void GM() {}
-
-    void GD() {}
-
     void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
         valuesQ[sizeQ] = v;
@@ -278,8 +275,6 @@ class Servo implements Motor {
     void setSelected(boolean s) {
         selected = s;
     }
-
-    void GI(int v) {}
 
     void deQ() {
         switch (modesQ[0]) {
@@ -336,8 +331,4 @@ class Servo implements Motor {
         mode = MODE_WA;
         timeMS = millis();
     }
-
-    void GS() {}
-
-    void VA() {}
 }

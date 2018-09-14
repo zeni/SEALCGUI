@@ -27,10 +27,6 @@ static final int COMMAND_RW = 7; // Rotate Wave
 static final int COMMAND_SQ = 8; // SeQuence
 static final int COMMAND_ERROR = 9;
 static final int COMMAND_RP = 10; // Rotate Pause
-static final int COMMAND_GS = 11; // Get Speed
-static final int COMMAND_GD = 12; // Get Direction
-static final int COMMAND_GM = 13; // Get Mode
-static final int COMMAND_GI = 14; // Get Id
 static final int COMMAND_SA = 15; // Stop All
 static final int COMMAND_RR = 16; // Rotate Angle (stepper) / Rotate Relative (servo)
 static final int COMMAND_WA = 17; // WAit command (ms)
@@ -239,18 +235,6 @@ void processCommand(char a) {
 					case COMMAND_WA:
 						motors[selectedMotor].fillQ(MODE_WA, currentValue);
 						break;
-					case COMMAND_GS:
-						motors[selectedMotor].GS();
-						break;
-					case COMMAND_GD:
-						motors[selectedMotor].GD();
-						break;
-					case COMMAND_GM:
-						motors[selectedMotor].GM();
-						break;
-					case COMMAND_GI:
-						motors[selectedMotor].GI(selectedMotor);
-						break;
 					case COMMAND_SA:
 						for (int i = 0; i < nMotors; i++) {
 							motors[i].ST();
@@ -315,27 +299,6 @@ void processCommand(char a) {
 					case 'P':
 						currentCommand = COMMAND_RP; //RP
 						//motors[selectedMotor]->initRP();
-						break;
-				}
-				break;
-			case 'g':
-			case 'G':
-				switch (command[1]) {
-					case 's':
-					case 'S':
-						currentCommand = COMMAND_GS; //GS
-						break;
-					case 'd':
-					case 'D':
-						currentCommand = COMMAND_GD; //GD
-						break;
-					case 'm':
-					case 'M':
-						currentCommand = COMMAND_GM; //GM
-						break;
-					case 'i':
-					case 'I':
-						currentCommand = COMMAND_GI; //GI
 						break;
 				}
 				break;
@@ -430,16 +393,16 @@ void sendSetup() {
 				String[] args = line.split(",");
 				switch (int(args[0])) {
 					case 0:
-						motors[n - 1] = new Stepper(int(args[1]));
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Stepper(int(args[1]), n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 1:
-						motors[n - 1] = new Servo(int(args[2]), int(args[3]));
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Servo(int(args[2]), int(args[3]), n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 2:
-						motors[n - 1] = new Vibro();
-						motors[n - 1].setGraphics(500 + (n - 1) * 50, 50, 20);
+						motors[n - 1] = new Vibro(n - 1);
+						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 				}
 			}

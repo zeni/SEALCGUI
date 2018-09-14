@@ -28,7 +28,8 @@ class Stepper implements Motor {
     int type;
     boolean selected;
 
-    Stepper(int n) {
+    Stepper(int n, int i) {
+        id = i;
         waveDir = 0;
         nSteps = n;
         realSteps = currentSteps;
@@ -63,13 +64,62 @@ class Stepper implements Motor {
         noFill();
         if (selected)
             stroke(255, 0, 0);
-        else stroke(255);
+        else
+            stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        rotateZ(radians(360.0 * currentSteps / nSteps));
+        if (currentDir == 0)
+            rotateZ(radians(360.0 * currentSteps / nSteps));
+        else
+            rotateZ(radians(-360.0 * currentSteps / nSteps));
         ellipse(0, 0, 2 * radius, 2 * radius);
         line(0, -radius, 0, 0 + radius);
         line(0 - radius, 0, 0 + radius, 0);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Speed: " + speedRPM + "RPM\n";
+        s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+
+        text(s, 0, 0);
         popMatrix();
     }
 
@@ -89,7 +139,6 @@ class Stepper implements Motor {
     }
 
     void setRO(int v) {
-        println(mode);
         if (v <= 0) {
             turns = 0;
         } else {
@@ -374,8 +423,6 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    void GI(int v) {}
-
     void deQ() {
         switch (modesQ[0]) {
             case MODE_IDLE:
@@ -418,18 +465,11 @@ class Stepper implements Motor {
         }
     }
 
-    void GS() {}
-
-    void VA() {}
-
-    void GM() {}
-
-    void GD() {}
-
     void fillQ(int m, int v) {
         modesQ[sizeQ] = m;
         valuesQ[sizeQ] = v;
         sizeQ++;
         sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
     }
+
 }

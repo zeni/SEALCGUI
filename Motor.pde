@@ -11,7 +11,6 @@ interface Motor {
     void setRR(int v);
     void setRW(int v);
     void setWA(int v);
-    void VA();
     void initSQ();
     void setSQ(int v);
     void columnRP(int v);
@@ -19,10 +18,6 @@ interface Motor {
     void action();
     void setSD(int v);
     String getType();
-    void GS();
-    void GD();
-    void GM();
-    void GI(int i);
     void fillQ(int m, int v);
     void deQ();
     void initWA();
