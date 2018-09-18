@@ -8,7 +8,6 @@ class Stepper implements Motor {
     int nSteps;
     int mode;
     int steps; // for move/hammer
-    int stepsHome; // steps for homing
     int dir;
     int currentDir;
     int currentSteps; // for move/hammer
@@ -36,16 +35,17 @@ class Stepper implements Motor {
         for (int j = 0; j < MAX_SEQ; j++)
             seq[j] = 0;
         angleSeq = 0;
+        speedRPM = 12;
         speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
         mode = MODE_IDLE;
-        speedRPM = 12;
         currentSteps = 0;
         steps = 0;
-        stepsHome = steps;
         dir = 0;
         currentDir = dir;
-        for (int j = 0; j < MAX_QUEUE; j++)
+        for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
@@ -118,7 +118,6 @@ class Stepper implements Motor {
                 s += "IDLE";
                 break;
         }
-
         text(s, 0, 0);
         popMatrix();
     }

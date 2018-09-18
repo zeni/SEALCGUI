@@ -62,9 +62,10 @@ char[] command = new char[2];
 int iCommand;
 int currentValue, selectedMotor;
 int currentCommand;
+int motorSize;
 
 void setup() {
-	size(1000, 600, P3D);
+	size(1200, 800, P3D);
 	frameRate(1000);
 	bgColor = color(40);
 	textBoxColor = color(20);
@@ -79,7 +80,7 @@ void setup() {
 	offsetX = 5;
 	offsetY = 5;
 	offsetText = 2;
-	textBoxWidth = 400;
+	textBoxWidth = 500;
 	PFont myFont = loadFont("Calibri-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
@@ -93,6 +94,7 @@ void setup() {
 	currentValue = -1;
 	selectedMotor = 0;
 	currentCommand = COMMAND_NONE;
+	motorSize = 20;
 }
 
 void draw() {
@@ -394,17 +396,15 @@ void sendSetup() {
 				switch (int(args[0])) {
 					case 0:
 						motors[n - 1] = new Stepper(int(args[1]), n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 1:
 						motors[n - 1] = new Servo(int(args[2]), int(args[3]), n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 2:
 						motors[n - 1] = new Vibro(n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 				}
+				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 8 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0), motorSize);
 			}
 			myPort.write(line + '\n');
 			n++;

@@ -28,11 +28,14 @@ class Vibro implements Motor {
             durationSeq[j] = 0;
             stateSeq[j] = 0;
         }
-        for (int j = 0; j < MAX_QUEUE; j++)
+        for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
+        duration = 0;
         pause = 1000;
         isPaused = false;
         timeMS = millis();
@@ -49,10 +52,55 @@ class Vibro implements Motor {
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
+        pushMatrix();
+        translate(xPos, yPos);
         if (isOn)
-            ellipse(xPos + random(5), yPos + random(5), 2 * radius, 2 * radius);
+            ellipse(0 + random(5), 0 + random(5), 2 * radius, 2 * radius);
         else
-            ellipse(xPos, yPos, 2 * radius, 2 * radius);
+            ellipse(0, 0, 2 * radius, 2 * radius);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+        text(s, 0, 0);
+        popMatrix();
     }
 
     String getType() {

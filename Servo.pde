@@ -7,7 +7,6 @@ class Servo implements Motor {
     int nSteps;
     int mode;
     int steps; // for move/hammer
-    int stepsHome; // steps for homing
     int dir;
     int currentDir;
     int currentSteps; // for move/hammer
@@ -35,7 +34,23 @@ class Servo implements Motor {
         for (int j = 0; j < MAX_SEQ; j++)
             seq[j] = 0;
         angleSeq = 0;
+        mode = MODE_IDLE;
+        currentSteps = 0;
+        steps = 0;
+        dir = 0;
+        currentDir = dir;
+        for (int j = 0; j < MAX_QUEUE; j++) {
+            modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
+        sizeQ = 0;
+        speedRPM = 12;
         speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+        indexSeq = 0;
+        lengthSeq = 0;
+        pause = 1000;
+        isPaused = false;
+        timeMS = millis();
     }
 
     void setGraphics(int x, int y, int r) {
@@ -49,8 +64,59 @@ class Servo implements Motor {
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
-        line(xPos, yPos - radius, xPos, yPos + radius);
+        pushMatrix();
+        translate(xPos, yPos);
+        if (currentDir == 0)
+            rotateZ(radians(angle));
+        else
+            rotateZ(radians(-angle));
+        ellipse(0, 0, 2 * radius, 2 * radius);
+        line(0, 0 - radius, 0, 0 + radius);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Speed: " + speedRPM + "RPM\n";
+        s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+        text(s, 0, 0);
+        popMatrix();
     }
 
     void SS(int v) {

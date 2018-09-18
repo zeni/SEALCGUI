@@ -80,6 +80,7 @@ char[] command = new char[2];
 int iCommand;
 int currentValue, selectedMotor;
 int currentCommand;
+int motorSize;
 
 public void setup() {
 	
@@ -97,7 +98,7 @@ public void setup() {
 	offsetX = 5;
 	offsetY = 5;
 	offsetText = 2;
-	textBoxWidth = 400;
+	textBoxWidth = 500;
 	PFont myFont = loadFont("Calibri-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
@@ -111,6 +112,7 @@ public void setup() {
 	currentValue = -1;
 	selectedMotor = 0;
 	currentCommand = COMMAND_NONE;
+	motorSize = 20;
 }
 
 public void draw() {
@@ -412,17 +414,15 @@ public void sendSetup() {
 				switch (PApplet.parseInt(args[0])) {
 					case 0:
 						motors[n - 1] = new Stepper(PApplet.parseInt(args[1]), n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 1:
 						motors[n - 1] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]), n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 					case 2:
 						motors[n - 1] = new Vibro(n - 1);
-						motors[n - 1].setGraphics(500 + (n - 1) * 150, 50, 20);
 						break;
 				}
+				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 8 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0f), motorSize);
 			}
 			myPort.write(line + '\n');
 			n++;
@@ -466,7 +466,6 @@ class Servo implements Motor {
     int nSteps;
     int mode;
     int steps; // for move/hammer
-    int stepsHome; // steps for homing
     int dir;
     int currentDir;
     int currentSteps; // for move/hammer
@@ -494,7 +493,23 @@ class Servo implements Motor {
         for (int j = 0; j < MAX_SEQ; j++)
             seq[j] = 0;
         angleSeq = 0;
+        mode = MODE_IDLE;
+        currentSteps = 0;
+        steps = 0;
+        dir = 0;
+        currentDir = dir;
+        for (int j = 0; j < MAX_QUEUE; j++) {
+            modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
+        sizeQ = 0;
+        speedRPM = 12;
         speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+        indexSeq = 0;
+        lengthSeq = 0;
+        pause = 1000;
+        isPaused = false;
+        timeMS = millis();
     }
 
     public void setGraphics(int x, int y, int r) {
@@ -508,8 +523,59 @@ class Servo implements Motor {
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
-        ellipse(xPos, yPos, 2 * radius, 2 * radius);
-        line(xPos, yPos - radius, xPos, yPos + radius);
+        pushMatrix();
+        translate(xPos, yPos);
+        if (currentDir == 0)
+            rotateZ(radians(360.0f * currentSteps / nSteps));
+        else
+            rotateZ(radians(-360.0f * currentSteps / nSteps));
+        ellipse(0, 0, 2 * radius, 2 * radius);
+        line(0, 0 - radius, 0, 0 + radius);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Speed: " + speedRPM + "RPM\n";
+        s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+        text(s, 0, 0);
+        popMatrix();
     }
 
     public void SS(int v) {
@@ -801,7 +867,6 @@ class Stepper implements Motor {
     int nSteps;
     int mode;
     int steps; // for move/hammer
-    int stepsHome; // steps for homing
     int dir;
     int currentDir;
     int currentSteps; // for move/hammer
@@ -829,16 +894,17 @@ class Stepper implements Motor {
         for (int j = 0; j < MAX_SEQ; j++)
             seq[j] = 0;
         angleSeq = 0;
+        speedRPM = 12;
         speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
         mode = MODE_IDLE;
-        speedRPM = 12;
         currentSteps = 0;
         steps = 0;
-        stepsHome = steps;
         dir = 0;
         currentDir = dir;
-        for (int j = 0; j < MAX_QUEUE; j++)
+        for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
@@ -911,7 +977,6 @@ class Stepper implements Motor {
                 s += "IDLE";
                 break;
         }
-
         text(s, 0, 0);
         popMatrix();
     }
@@ -1296,11 +1361,14 @@ class Vibro implements Motor {
             durationSeq[j] = 0;
             stateSeq[j] = 0;
         }
-        for (int j = 0; j < MAX_QUEUE; j++)
+        for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;
+            valuesQ[j] = -1;
+        }
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
+        duration = 0;
         pause = 1000;
         isPaused = false;
         timeMS = millis();
@@ -1317,10 +1385,55 @@ class Vibro implements Motor {
         if (selected)
             stroke(255, 0, 0);
         else stroke(255);
+        pushMatrix();
+        translate(xPos, yPos);
         if (isOn)
-            ellipse(xPos + random(5), yPos + random(5), 2 * radius, 2 * radius);
+            ellipse(0 + random(5), 0 + random(5), 2 * radius, 2 * radius);
         else
-            ellipse(xPos, yPos, 2 * radius, 2 * radius);
+            ellipse(0, 0, 2 * radius, 2 * radius);
+        popMatrix();
+        pushMatrix();
+        translate(xPos - radius, yPos + 2 * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(255);
+        String s = id + getType() + "\n";
+        s += "Mode: ";
+        switch (mode) {
+            case MODE_ST:
+                s += "ST";
+                break;
+            case MODE_RO:
+                s += "RO";
+                break;
+            case MODE_RA:
+                s += "RA";
+                break;
+            case MODE_RR:
+                s += "RR";
+                break;
+            case MODE_WA:
+                s += "WA";
+                break;
+            case MODE_RW:
+                s += "RW";
+                break;
+            case MODE_RP:
+                s += "RP";
+                break;
+            case MODE_SQ:
+                s += "SQ";
+                break;
+            case MODE_SD:
+                s += "SD";
+                break;
+            case MODE_IDLE:
+                s += "IDLE";
+                break;
+        }
+        text(s, 0, 0);
+        popMatrix();
     }
 
     public String getType() {
@@ -1553,7 +1666,7 @@ class Vibro implements Motor {
 
     public void setSD(int v) {}
 }
-  public void settings() { 	size(1000, 600, P3D); }
+  public void settings() { 	size(1200, 800, P3D); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "SEALCGUI" };
     if (passedArgs != null) {
