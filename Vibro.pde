@@ -55,7 +55,7 @@ class Vibro implements Motor {
         pushMatrix();
         translate(xPos, yPos);
         if (isOn)
-            ellipse(0 + random(5), 0 + random(5), 2 * radius, 2 * radius);
+            ellipse(random(5), random(5), 2 * radius, 2 * radius);
         else
             ellipse(0, 0, 2 * radius, 2 * radius);
         popMatrix();

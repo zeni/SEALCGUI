@@ -64,7 +64,7 @@ static final int MAX_SEQ = 10; // max length of sequence for beat
 static final int MAX_QUEUE = 10;
 
 Serial myPort;
-String myText, inBuffer;
+String myText, inBuffer, history;
 int state;
 int nPorts;
 String[] portsList;
@@ -85,8 +85,8 @@ int motorSize;
 public void setup() {
 	
 	frameRate(1000);
-	bgColor = color(40);
-	textBoxColor = color(20);
+	bgColor = color(40, 50, 50);
+	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
 	background(bgColor);
 	myText = "";
@@ -99,11 +99,12 @@ public void setup() {
 	offsetY = 5;
 	offsetText = 2;
 	textBoxWidth = 500;
-	PFont myFont = loadFont("Calibri-16.vlw");
+	PFont myFont = loadFont("Arial-BoldMT-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
 	textLead = textSize + 4;
 	textLeading(textLead);
+	strokeWeight(2);
 	inTextBoxHeight = 300;
 	command[0] = 0;
 	command[1] = 0;
@@ -112,7 +113,8 @@ public void setup() {
 	currentValue = -1;
 	selectedMotor = 0;
 	currentCommand = COMMAND_NONE;
-	motorSize = 20;
+	motorSize = 30;
+	history = "";
 }
 
 public void draw() {
@@ -135,6 +137,7 @@ public void draw() {
 		case STATE_RUNNING:
 			writeTextBox(textBoxColor);
 			readTextBox();
+			historyBox();
 			for (int i = 0; i < nMotors; i++) {
 				motors[i].display();
 				motors[i].action();
@@ -163,6 +166,7 @@ public void keyPressed() {
 				case ENTER:
 				case RETURN:
 					myText = myText + '\n';
+					history += myText;
 					sendText();
 					for (int i = 0; i < myText.length(); i++) {
 						processCommand(myText.charAt(i));
@@ -170,7 +174,6 @@ public void keyPressed() {
 					myText = "";
 					break;
 				default:
-					//processCommand(key);
 					myText = myText + key;
 					myText = myText.toUpperCase();
 					break;
@@ -344,7 +347,9 @@ public void processCommand(char a) {
 public void writeTextBox(int c) {
 	fill(c);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, textLead);
+	pushMatrix();
+	translate(offsetX, offsetY);
+	rect(0, 0, textBoxWidth, textLead * 1.5f);
 	textAlign(LEFT, CENTER);
 	for (int i = 0; i < myText.length(); i++) {
 		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58)) {
@@ -354,8 +359,9 @@ public void writeTextBox(int c) {
 		} else
 			fill(color(0, 255, 0));
 		int w = PApplet.parseInt(textWidth(myText.substring(0, i)));
-		text(myText.substring(i, i + 1), offsetX + offsetText + w, offsetY, textBoxWidth, textLead);
+		text(myText.substring(i, i + 1), offsetText + w, 5, textBoxWidth, textLead);
 	}
+	popMatrix();
 	textAlign(LEFT, TOP);
 }
 
@@ -369,27 +375,45 @@ public void readTextBox() {
 		inBuffer += myPort.readString();
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY + 25, textBoxWidth, inTextBoxHeight);
+	pushMatrix();
+	translate(offsetX, offsetY + 50);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
-	scrollText();
-	text(inBuffer, offsetX + offsetText, offsetY + 25 + offsetText, textBoxWidth, inTextBoxHeight);
+	inBuffer = scrollText(inBuffer);
+	text(inBuffer, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
 }
 
-public void scrollText() {
+public void historyBox() {
+	fill(textBoxColor);
+	noStroke();
+	pushMatrix();
+	translate(offsetX, offsetY + 80 + inTextBoxHeight);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
+	fill(textColor);
+	history = scrollText(history);
+	text(history, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
+}
+
+public String scrollText(String s) {
 	int nLines = 0;
-	for (int i = 0; i < inBuffer.length(); i++) {
-		if (inBuffer.charAt(i) == '\n') nLines++;
+	for (int i = 0; i < s.length(); i++) {
+		if (s.charAt(i) == '\n') nLines++;
 	}
 	if (nLines * textLead > inTextBoxHeight) {
-		int a = inBuffer.indexOf('\n');
-		inBuffer = inBuffer.substring(a + 1);
+		int a = s.indexOf('\n');
+		s = s.substring(a + 1);
 	}
+	return s;
 }
 
 public void selectPort() {
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, inTextBoxHeight);
+	pushMatrix();
+	translate(offsetX, offsetY);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	String portsListString = "Please select port:\n";
 	for (int i = 0; i < nPorts; i++) {
@@ -397,7 +421,8 @@ public void selectPort() {
 		portsListString += portsList[i];
 		portsListString += "\n";
 	}
-	text(portsListString, offsetX + offsetText, offsetY + offsetText, textBoxWidth, 200);
+	text(portsListString, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
 }
 
 public void sendSetup() {
@@ -422,7 +447,7 @@ public void sendSetup() {
 						motors[n - 1] = new Vibro(n - 1);
 						break;
 				}
-				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 8 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0f), motorSize);
+				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0f), motorSize);
 			}
 			myPort.write(line + '\n');
 			n++;
@@ -526,11 +551,11 @@ class Servo implements Motor {
         pushMatrix();
         translate(xPos, yPos);
         if (currentDir == 0)
-            rotateZ(radians(360.0f * currentSteps / nSteps));
+            rotateZ(radians(angle));
         else
-            rotateZ(radians(-360.0f * currentSteps / nSteps));
+            rotateZ(radians(-angle));
         ellipse(0, 0, 2 * radius, 2 * radius);
-        line(0, 0 - radius, 0, 0 + radius);
+        line(0, radius, 0, radius);
         popMatrix();
         pushMatrix();
         translate(xPos - radius, yPos + 2 * radius);
@@ -861,6 +886,7 @@ class Stepper implements Motor {
     int waveDir; // increasing / decreasing speed
     int turns; // for rotate (0=continuous rotation)
     int realSteps;
+    int absoluteSteps;
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
     int id;
@@ -891,6 +917,7 @@ class Stepper implements Motor {
         waveDir = 0;
         nSteps = n;
         realSteps = currentSteps;
+        absoluteSteps = currentSteps;
         for (int j = 0; j < MAX_SEQ; j++)
             seq[j] = 0;
         angleSeq = 0;
@@ -927,13 +954,13 @@ class Stepper implements Motor {
             stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        if (currentDir == 0)
-            rotateZ(radians(360.0f * currentSteps / nSteps));
-        else
-            rotateZ(radians(-360.0f * currentSteps / nSteps));
+        //if (currentDir == 0)
+        rotateZ(radians(360.0f * absoluteSteps / nSteps));
+        //else
+        //  rotateZ(radians(-360.0 * absoluteSteps / nSteps));
         ellipse(0, 0, 2 * radius, 2 * radius);
-        line(0, -radius, 0, 0 + radius);
-        line(0 - radius, 0, 0 + radius, 0);
+        line(0, -radius, 0, radius);
+        line(0 - radius, 0, radius, 0);
         popMatrix();
         pushMatrix();
         translate(xPos - radius, yPos + 2 * radius);
@@ -1021,6 +1048,7 @@ class Stepper implements Motor {
         isPaused = false;
         pause = (v <= 0) ? 1000 : v;
         turns = (turns <= 0) ? 1 : turns;
+        currentSteps = 0;
         steps = turns * nSteps;
         mode = MODE_RP;
         timeMS = millis();
@@ -1091,6 +1119,7 @@ class Stepper implements Motor {
             ST();
         } else {
             currentSteps++;
+            absoluteSteps = currentSteps % nSteps;
             timeMS = millis();
         }
     }
@@ -1145,6 +1174,7 @@ class Stepper implements Motor {
                 if (turns == 0) {
                     currentSteps++;
                     currentSteps %= nSteps;
+                    absoluteSteps = currentSteps;
                     if (currentSteps == 0)
                         deQ();
                     timeMS = millis();
@@ -1170,8 +1200,10 @@ class Stepper implements Motor {
                         isPaused = true;
                         currentSteps = 0;
                         deQ();
-                    } else
+                    } else {
                         currentSteps++;
+                        absoluteSteps = currentSteps % nSteps;
+                    }
                     timeMS = millis();
                 }
             }
@@ -1205,6 +1237,7 @@ class Stepper implements Motor {
                     if (realSteps == 0)
                         deQ();
                     currentSteps++;
+                    absoluteSteps = currentSteps % nSteps;
                     timeMS = millis();
                 }
             }
@@ -1246,15 +1279,23 @@ class Stepper implements Motor {
                     currentDir = 1 - currentDir;
                     currentSteps = 0;
                     indexSeq++;
-                    if ((indexSeq % 2) == 0)
+                    if ((indexSeq % 2) == 0) {
                         newBeat = true;
+                        println(absoluteSteps);
+                    }
                     int a = floor(indexSeq / 2);
                     if (a >= lengthSeq)
                         indexSeq = 0;
                 } else {
                     int a = floor(indexSeq / 2);
                     currentSteps++;
-                    if (seq[a] > 0);
+                    println(currentSteps + "/" + absoluteSteps);
+                    if (seq[a] > 0) {
+                        if (currentDir > 0)
+                            absoluteSteps--;
+                        else absoluteSteps++;
+                        absoluteSteps %= nSteps;
+                    } else absoluteSteps = 0;
                     timeMS = millis();
                 }
             }
@@ -1388,7 +1429,7 @@ class Vibro implements Motor {
         pushMatrix();
         translate(xPos, yPos);
         if (isOn)
-            ellipse(0 + random(5), 0 + random(5), 2 * radius, 2 * radius);
+            ellipse(random(5), random(5), 2 * radius, 2 * radius);
         else
             ellipse(0, 0, 2 * radius, 2 * radius);
         popMatrix();

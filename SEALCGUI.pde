@@ -46,7 +46,7 @@ static final int MAX_SEQ = 10; // max length of sequence for beat
 static final int MAX_QUEUE = 10;
 
 Serial myPort;
-String myText, inBuffer;
+String myText, inBuffer, history;
 int state;
 int nPorts;
 String[] portsList;
@@ -67,8 +67,8 @@ int motorSize;
 void setup() {
 	size(1200, 800, P3D);
 	frameRate(1000);
-	bgColor = color(40);
-	textBoxColor = color(20);
+	bgColor = color(40, 50, 50);
+	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
 	background(bgColor);
 	myText = "";
@@ -81,11 +81,12 @@ void setup() {
 	offsetY = 5;
 	offsetText = 2;
 	textBoxWidth = 500;
-	PFont myFont = loadFont("Calibri-16.vlw");
+	PFont myFont = loadFont("Arial-BoldMT-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
 	textLead = textSize + 4;
 	textLeading(textLead);
+	strokeWeight(2);
 	inTextBoxHeight = 300;
 	command[0] = 0;
 	command[1] = 0;
@@ -94,7 +95,8 @@ void setup() {
 	currentValue = -1;
 	selectedMotor = 0;
 	currentCommand = COMMAND_NONE;
-	motorSize = 20;
+	motorSize = 30;
+	history = "";
 }
 
 void draw() {
@@ -117,6 +119,7 @@ void draw() {
 		case STATE_RUNNING:
 			writeTextBox(textBoxColor);
 			readTextBox();
+			historyBox();
 			for (int i = 0; i < nMotors; i++) {
 				motors[i].display();
 				motors[i].action();
@@ -145,6 +148,7 @@ void keyPressed() {
 				case ENTER:
 				case RETURN:
 					myText = myText + '\n';
+					history += myText;
 					sendText();
 					for (int i = 0; i < myText.length(); i++) {
 						processCommand(myText.charAt(i));
@@ -152,7 +156,6 @@ void keyPressed() {
 					myText = "";
 					break;
 				default:
-					//processCommand(key);
 					myText = myText + key;
 					myText = myText.toUpperCase();
 					break;
@@ -326,7 +329,9 @@ void processCommand(char a) {
 void writeTextBox(color c) {
 	fill(c);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, textLead);
+	pushMatrix();
+	translate(offsetX, offsetY);
+	rect(0, 0, textBoxWidth, textLead * 1.5);
 	textAlign(LEFT, CENTER);
 	for (int i = 0; i < myText.length(); i++) {
 		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58)) {
@@ -336,8 +341,9 @@ void writeTextBox(color c) {
 		} else
 			fill(color(0, 255, 0));
 		int w = int(textWidth(myText.substring(0, i)));
-		text(myText.substring(i, i + 1), offsetX + offsetText + w, offsetY, textBoxWidth, textLead);
+		text(myText.substring(i, i + 1), offsetText + w, 5, textBoxWidth, textLead);
 	}
+	popMatrix();
 	textAlign(LEFT, TOP);
 }
 
@@ -351,27 +357,45 @@ void readTextBox() {
 		inBuffer += myPort.readString();
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY + 25, textBoxWidth, inTextBoxHeight);
+	pushMatrix();
+	translate(offsetX, offsetY + 50);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
-	scrollText();
-	text(inBuffer, offsetX + offsetText, offsetY + 25 + offsetText, textBoxWidth, inTextBoxHeight);
+	inBuffer = scrollText(inBuffer);
+	text(inBuffer, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
 }
 
-void scrollText() {
+void historyBox() {
+	fill(textBoxColor);
+	noStroke();
+	pushMatrix();
+	translate(offsetX, offsetY + 80 + inTextBoxHeight);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
+	fill(textColor);
+	history = scrollText(history);
+	text(history, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
+}
+
+String scrollText(String s) {
 	int nLines = 0;
-	for (int i = 0; i < inBuffer.length(); i++) {
-		if (inBuffer.charAt(i) == '\n') nLines++;
+	for (int i = 0; i < s.length(); i++) {
+		if (s.charAt(i) == '\n') nLines++;
 	}
 	if (nLines * textLead > inTextBoxHeight) {
-		int a = inBuffer.indexOf('\n');
-		inBuffer = inBuffer.substring(a + 1);
+		int a = s.indexOf('\n');
+		s = s.substring(a + 1);
 	}
+	return s;
 }
 
 void selectPort() {
 	fill(textBoxColor);
 	noStroke();
-	rect(offsetX, offsetY, textBoxWidth, inTextBoxHeight);
+	pushMatrix();
+	translate(offsetX, offsetY);
+	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	String portsListString = "Please select port:\n";
 	for (int i = 0; i < nPorts; i++) {
@@ -379,7 +403,8 @@ void selectPort() {
 		portsListString += portsList[i];
 		portsListString += "\n";
 	}
-	text(portsListString, offsetX + offsetText, offsetY + offsetText, textBoxWidth, 200);
+	text(portsListString, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	popMatrix();
 }
 
 void sendSetup() {
@@ -404,7 +429,7 @@ void sendSetup() {
 						motors[n - 1] = new Vibro(n - 1);
 						break;
 				}
-				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 8 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0), motorSize);
+				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0), motorSize);
 			}
 			myPort.write(line + '\n');
 			n++;
