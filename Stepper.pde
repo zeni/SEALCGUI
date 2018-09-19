@@ -4,6 +4,7 @@ class Stepper implements Motor {
     int realSteps;
     int absoluteSteps;
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int[] currentSeq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
     int id;
     int nSteps;
@@ -12,7 +13,9 @@ class Stepper implements Motor {
     int dir;
     int currentDir;
     int currentSteps; // for move/hammer
+    int currentIndexSeq; // current position in sequence
     int indexSeq; // current position in sequence
+    int currentLengthSeq; // length of seq.
     int lengthSeq; // length of seq.
     long timeMS; // for speed
     int speed; // en ms
@@ -34,8 +37,10 @@ class Stepper implements Motor {
         nSteps = n;
         realSteps = currentSteps;
         absoluteSteps = currentSteps;
-        for (int j = 0; j < MAX_SEQ; j++)
+        for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
+            currentSeq[j] = 0;
+        }
         angleSeq = 0;
         speedRPM = 12;
         speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
@@ -54,6 +59,8 @@ class Stepper implements Motor {
         pause = 1000;
         isPaused = false;
         timeMS = millis();
+        currentIndexSeq = 0;
+        currentLengthSeq = 0;
     }
 
     void setGraphics(int x, int y, int r) {
@@ -70,13 +77,11 @@ class Stepper implements Motor {
             stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        //if (currentDir == 0)
-        rotateZ(radians(360.0 * absoluteSteps / nSteps));
-        //else
-        //  rotateZ(radians(-360.0 * absoluteSteps / nSteps));
+        rotateZ(TWO_PI * absoluteSteps / nSteps);
         ellipse(0, 0, 2 * radius, 2 * radius);
         line(0, -radius, 0, radius);
         line(0 - radius, 0, radius, 0);
+        triangle(0, -radius - 10, -5, -radius, 5, -radius);
         popMatrix();
         pushMatrix();
         translate(xPos - radius, yPos + 2 * radius);
@@ -193,10 +198,8 @@ class Stepper implements Motor {
     }
 
     void initSQ() {
-        angleSeq = 0;
         indexSeq = 0;
         lengthSeq = 0;
-        newBeat = true;
     }
 
     void columnSQ(int v) {
@@ -210,9 +213,11 @@ class Stepper implements Motor {
     }
 
     void setSQ(int v) {
-        currentDir = dir;
+        newBeat = true;
+        //currentDir = dir;
         if (angleSeq == 0) {
             angleSeq = v;
+            indexSeq = 0;
             seq[indexSeq] = 1;
             lengthSeq = 1;
         } else {
@@ -220,8 +225,11 @@ class Stepper implements Motor {
             indexSeq++;
             lengthSeq = indexSeq;
         }
+        currentLengthSeq = lengthSeq;
+        for (int i = 0; i < currentLengthSeq; i++)
+            currentSeq[i] = seq[i];
         angleSeq = int(angleSeq / 360.0 * nSteps);
-        indexSeq = 0;
+        currentIndexSeq = 0;
         steps = angleSeq;
         angleSeq = 0;
         currentSteps = 0;
@@ -379,8 +387,8 @@ class Stepper implements Motor {
             if (newBeat) {
                 deQ();
                 newBeat = false;
-                int a = floor(indexSeq / 2);
-                switch (seq[a]) {
+                int a = floor(currentIndexSeq / 2);
+                switch (currentSeq[a]) {
                     case 2:
                         currentDir = 1 - dir;
                         break;
@@ -391,29 +399,25 @@ class Stepper implements Motor {
                 }
             }
             if ((millis() - timeMS) > speed) {
+                int a = floor(currentIndexSeq / 2);
                 if (currentSteps >= steps) {
-                    currentDir = 1 - currentDir;
                     currentSteps = 0;
-                    indexSeq++;
-                    if ((indexSeq % 2) == 0) {
+                    currentIndexSeq++;
+                    if (a >= currentLengthSeq)
+                        currentIndexSeq = 0;
+                    if ((currentIndexSeq % 2) == 0)
                         newBeat = true;
-                        println(absoluteSteps);
-                    }
-                    int a = floor(indexSeq / 2);
-                    if (a >= lengthSeq)
-                        indexSeq = 0;
+                    else currentDir = 1 - currentDir;
                 } else {
-                    int a = floor(indexSeq / 2);
                     currentSteps++;
-                    println(currentSteps + "/" + absoluteSteps);
                     if (seq[a] > 0) {
                         if (currentDir > 0)
                             absoluteSteps--;
                         else absoluteSteps++;
                         absoluteSteps %= nSteps;
                     } else absoluteSteps = 0;
-                    timeMS = millis();
                 }
+                timeMS = millis();
             }
         } else {
             ST();

@@ -71,7 +71,8 @@ class Servo implements Motor {
         else
             rotateZ(radians(-angle));
         ellipse(0, 0, 2 * radius, 2 * radius);
-        line(0, radius, 0, radius);
+        line(0, -radius, 0, radius);
+        triangle(0, -radius - 10, -5, -radius, 5, -radius);
         popMatrix();
         pushMatrix();
         translate(xPos - radius, yPos + 2 * radius);
