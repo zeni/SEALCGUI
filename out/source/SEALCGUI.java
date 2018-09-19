@@ -551,10 +551,7 @@ class Servo implements Motor {
         else stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        //if (currentDir == 0)
         rotateZ(radians(angle));
-        //else
-        //   rotateZ(radians(-angle));
         ellipse(0, 0, 2 * radius, 2 * radius);
         line(0, -radius, 0, radius);
         triangle(0, -radius - 10, -5, -radius, 5, -radius);
@@ -631,11 +628,9 @@ class Servo implements Motor {
     }
 
     public void setRR(int v) {
-        println("rr");
         currentDir = dir;
         steps = (v <= 0) ? 0 : (v % (angleMax - angleMin));
         currentSteps = 0;
-        println(angle + "/" + steps);
         mode = MODE_RR;
         timeMS = millis();
     }
@@ -716,9 +711,9 @@ class Servo implements Motor {
 
     // move one step
     public void moveStep() {
-        if (currentSteps >= steps) {
+        if (currentSteps >= steps)
             ST();
-        } else {
+        else {
             currentSteps++;
             servoStep();
             timeMS = millis();
@@ -766,13 +761,11 @@ class Servo implements Motor {
 
     // rotate a number of steps
     public void RA() {
-        println(angle + "/" + currentSteps);
         if (speed > 0) {
             if ((millis() - timeMS) > speed)
                 moveStep();
-        } else {
+        } else
             ST();
-        }
     }
 
     // continuous hammer movement with pattern of angles
@@ -782,15 +775,7 @@ class Servo implements Motor {
                 deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
-                switch (seq[a]) {
-                    case 2:
-                        currentDir = 1 - dir;
-                        break;
-                    case 1:
-                    case 0:
-                        currentDir = dir;
-                        break;
-                }
+                currentDir = (seq[a] < 2) ? dir : (1 - dir);
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
@@ -806,15 +791,13 @@ class Servo implements Motor {
                         currentDir = 1 - currentDir;
                 } else {
                     currentSteps++;
-                    if (currentSeq[a] > 0) {
+                    if (currentSeq[a] > 0)
                         servoStep();
-                    }
                 }
                 timeMS = millis();
             }
-        } else {
+        } else
             ST();
-        }
     }
 
     public void WA() {
