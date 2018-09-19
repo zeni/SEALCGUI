@@ -33,6 +33,7 @@ class Servo implements Motor {
         id = i;
         angleMin = amin;
         angleMax = amax;
+        angle = angleMin;
         nSteps = 360;
         for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
@@ -73,10 +74,10 @@ class Servo implements Motor {
         else stroke(255);
         pushMatrix();
         translate(xPos, yPos);
-        if (currentDir == 0)
-            rotateZ(radians(angle));
-        else
-            rotateZ(radians(-angle));
+        //if (currentDir == 0)
+        rotateZ(radians(angle));
+        //else
+        //   rotateZ(radians(-angle));
         ellipse(0, 0, 2 * radius, 2 * radius);
         line(0, -radius, 0, radius);
         triangle(0, -radius - 10, -5, -radius, 5, -radius);
@@ -142,18 +143,19 @@ class Servo implements Motor {
         mode = MODE_SD;
     }
 
-    void setRO(int v) {}
-
-    void initRP() {}
+    void setRO(int v) {
+        mode = MODE_IDLE;
+    }
 
     void columnRP(int v) {}
 
-    void setRP(int v) {}
+    void setRP(int v) {
+        mode = MODE_IDLE;
+    }
 
     void setRR(int v) {
-        v = (v <= 0) ? 0 : (v % (angleMax - angleMin));
-        v = (dir > 0) ? -v : v;
-        steps = int(abs(v) / 360.0 * nSteps);
+        currentDir = dir;
+        steps = (v <= 0) ? 0 : (v % (angleMax - angleMin));
         currentSteps = 0;
         mode = MODE_RR;
         timeMS = millis();
@@ -161,23 +163,25 @@ class Servo implements Motor {
 
     void setRA(int v) {
         v = (v < angleMin) ? angleMin : ((v > angleMax) ? angleMax : v);
-        if (v > angle) {
+        if (v >= angle) {
             v = v - angle;
-            currentDir = 1;
+            currentDir = 0;
         } else {
             v = angle - v;
-            currentDir = 0;
+            currentDir = 1;
         }
-        steps = int(v / 360.0 * nSteps);
+        steps = v;
+        println(angle + "/" + steps);
         currentSteps = 0;
         mode = MODE_RA;
         timeMS = millis();
     }
 
-    void setRW(int v) {}
+    void setRW(int v) {
+        mode = MODE_IDLE;
+    }
 
     void initSQ() {
-        angleSeq = 0;
         indexSeq = 0;
         lengthSeq = 0;
     }
@@ -251,6 +255,8 @@ class Servo implements Motor {
                 ST();
                 break;
             case MODE_SD:
+                SD();
+                break;
             case MODE_RW:
             case MODE_RO:
             case MODE_RP:
@@ -281,6 +287,7 @@ class Servo implements Motor {
 
     // rotate a number of steps
     void RA() {
+        println(angle + "/" + currentSteps);
         if (speed > 0) {
             if ((millis() - timeMS) > speed)
                 moveStep();
@@ -366,8 +373,10 @@ class Servo implements Motor {
                 setRP(valuesQ[0]);
                 break;
             case MODE_RA:
-            case MODE_RR:
                 setRA(valuesQ[0]);
+                break;
+            case MODE_RR:
+                setRR(valuesQ[0]);
                 break;
             case MODE_RW:
                 setRW(valuesQ[0]);
