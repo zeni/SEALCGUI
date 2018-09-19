@@ -259,9 +259,8 @@ public void processCommand(char a) {
 						motors[selectedMotor].fillQ(MODE_WA, currentValue);
 						break;
 					case COMMAND_SA:
-						for (int i = 0; i < nMotors; i++) {
+						for (int i = 0; i < nMotors; i++)
 							motors[i].ST();
-						}
 						break;
 					case COMMAND_SELECT:
 					case COMMAND_ERROR:
@@ -463,29 +462,20 @@ interface Motor {
     public void columnSQ(int v);
     public void setGraphics(int x, int y, int r);
     public void display();
-    public void initRP();
     public void SS(int v);
-    public void setRO(int v);
-    public void setRP(int v);
-    public void setRA(int v);
-    public void setRR(int v);
-    public void setRW(int v);
-    public void setWA(int v);
     public void initSQ();
-    public void setSQ(int v);
     public void columnRP(int v);
     public void ST();
     public void action();
-    public void setSD(int v);
     public String getType();
     public void fillQ(int m, int v);
     public void deQ();
-    public void initWA();
 }
 class Servo implements Motor {
     int angleMin, angleMax;
     int angle; // current angle
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int[] currentSeq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
     int id;
     int nSteps;
@@ -495,7 +485,9 @@ class Servo implements Motor {
     int currentDir;
     int currentSteps; // for move/hammer
     int indexSeq; // current position in sequence
+    int currentIndexSeq; // current position in sequence
     int lengthSeq; // length of seq.
+    int currentLengthSeq; // length of seq.
     long timeMS; // for speed
     int speed; // en ms
     int speedRPM; //en RPM
@@ -515,8 +507,10 @@ class Servo implements Motor {
         angleMin = amin;
         angleMax = amax;
         nSteps = 360;
-        for (int j = 0; j < MAX_SEQ; j++)
+        for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
+            currentSeq[j] = 0;
+        }
         angleSeq = 0;
         mode = MODE_IDLE;
         currentSteps = 0;
@@ -534,6 +528,8 @@ class Servo implements Motor {
         lengthSeq = 0;
         pause = 1000;
         isPaused = false;
+        currentIndexSeq = 0;
+        currentLengthSeq = 0;
         timeMS = millis();
     }
 
@@ -657,32 +653,33 @@ class Servo implements Motor {
         angleSeq = 0;
         indexSeq = 0;
         lengthSeq = 0;
-        newBeat = true;
     }
 
     public void columnSQ(int v) {
         v = (v <= 0) ? 0 : v;
         if (angleSeq == 0)
             angleSeq = v;
-        else {
-            seq[indexSeq] = v;
-            indexSeq++;
-        }
+        else
+            seq[indexSeq++] = v;
     }
 
     public void setSQ(int v) {
         currentDir = dir;
+        newBeat = true;
         if (angleSeq == 0) {
             angleSeq = v;
+            indexSeq = 0;
             seq[indexSeq] = 1;
             lengthSeq = 1;
         } else {
-            seq[indexSeq] = v;
-            indexSeq++;
+            seq[indexSeq++] = v;
             lengthSeq = indexSeq;
         }
-        angleSeq = PApplet.parseInt(angleSeq / 360.0f * nSteps);
+        currentLengthSeq = lengthSeq;
+        for (int i = 0; i < currentLengthSeq; i++)
+            currentSeq[i] = seq[i];
         indexSeq = 0;
+        currentIndexSeq = 0;
         steps = angleSeq;
         angleSeq = 0;
         currentSteps = 0;
@@ -771,7 +768,7 @@ class Servo implements Motor {
             if (newBeat) {
                 deQ();
                 newBeat = false;
-                int a = floor(indexSeq / 2);
+                int a = floor(currentIndexSeq / 2);
                 switch (seq[a]) {
                     case 2:
                         currentDir = 1 - dir;
@@ -783,23 +780,24 @@ class Servo implements Motor {
                 }
             }
             if ((millis() - timeMS) > speed) {
+                int a = floor(currentIndexSeq / 2);
                 if (currentSteps >= steps) {
-                    currentDir = 1 - currentDir;
+                    currentIndexSeq++;
                     currentSteps = 0;
                     indexSeq++;
-                    if ((indexSeq % 2) == 0)
+                    if (a >= currentLengthSeq)
+                        currentIndexSeq = 0;
+                    if ((currentIndexSeq % 2) == 0)
                         newBeat = true;
-                    int a = floor(indexSeq / 2);
-                    if (a >= lengthSeq)
-                        indexSeq = 0;
+                    else
+                        currentDir = 1 - currentDir;
                 } else {
-                    int a = floor(indexSeq / 2);
                     currentSteps++;
-                    if (seq[a] > 0) {
+                    if (currentSeq[a] > 0) {
                         servoStep();
                     }
-                    timeMS = millis();
                 }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -943,9 +941,9 @@ class Stepper implements Motor {
         lengthSeq = 0;
         pause = 1000;
         isPaused = false;
-        timeMS = millis();
         currentIndexSeq = 0;
         currentLengthSeq = 0;
+        timeMS = millis();
     }
 
     public void setGraphics(int x, int y, int r) {
@@ -1040,12 +1038,6 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    public void initRP() {
-        turns = 1;
-        pause = 1000;
-        isPaused = false;
-    }
-
     public void columnRP(int v) {
         turns = (v <= 0) ? 1 : v;
     }
@@ -1099,7 +1091,6 @@ class Stepper implements Motor {
 
     public void setSQ(int v) {
         newBeat = true;
-        //currentDir = dir;
         if (angleSeq == 0) {
             angleSeq = v;
             indexSeq = 0;
@@ -1122,13 +1113,33 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
+    public void setSelected(boolean s) {
+        selected = s;
+    }
+
+    public void setWA(int v) {
+        isPaused = false;
+        v = (v < 0) ? 1000 : v;
+        pause = v;
+        pause = v;
+        mode = MODE_WA;
+        timeMS = millis();
+    }
+
+    public void absoluteStepsDir() {
+        if (currentDir > 0)
+            absoluteSteps--;
+        else absoluteSteps++;
+        absoluteSteps %= nSteps;
+    }
+
     // move one step
     public void moveStep() {
         if (currentSteps >= steps) {
             ST();
         } else {
             currentSteps++;
-            absoluteSteps = currentSteps % nSteps;
+            absoluteStepsDir();
             timeMS = millis();
         }
     }
@@ -1183,12 +1194,15 @@ class Stepper implements Motor {
                 if (turns == 0) {
                     currentSteps++;
                     currentSteps %= nSteps;
-                    absoluteSteps = currentSteps;
+                    absoluteStepsDir();
                     if (currentSteps == 0)
                         deQ();
                     timeMS = millis();
-                } else
+                } else {
                     moveStep();
+                    if ((currentSteps % nSteps) == 0)
+                        deQ();
+                }
             }
         } else {
             ST();
@@ -1211,7 +1225,7 @@ class Stepper implements Motor {
                         deQ();
                     } else {
                         currentSteps++;
-                        absoluteSteps = currentSteps % nSteps;
+                        absoluteStepsDir();
                     }
                     timeMS = millis();
                 }
@@ -1246,9 +1260,9 @@ class Stepper implements Motor {
                     if (realSteps == 0)
                         deQ();
                     currentSteps++;
-                    absoluteSteps = currentSteps % nSteps;
-                    timeMS = millis();
+                    absoluteStepsDir();
                 }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -1295,36 +1309,14 @@ class Stepper implements Motor {
                     else currentDir = 1 - currentDir;
                 } else {
                     currentSteps++;
-                    if (seq[a] > 0) {
-                        if (currentDir > 0)
-                            absoluteSteps--;
-                        else absoluteSteps++;
-                        absoluteSteps %= nSteps;
-                    } else absoluteSteps = 0;
+                    if (seq[a] > 0)
+                        absoluteStepsDir();
                 }
                 timeMS = millis();
             }
         } else {
             ST();
         }
-    }
-
-    public void setSelected(boolean s) {
-        selected = s;
-    }
-
-    public void initWA() {
-        pause = 1000;
-        isPaused = false;
-    }
-
-    public void setWA(int v) {
-        isPaused = false;
-        v = (v < 0) ? 1000 : v;
-        pause = v;
-        pause = v;
-        mode = MODE_WA;
-        timeMS = millis();
     }
 
     public void deQ() {

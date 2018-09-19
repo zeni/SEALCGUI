@@ -2,6 +2,7 @@ class Servo implements Motor {
     int angleMin, angleMax;
     int angle; // current angle
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int[] currentSeq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
     int id;
     int nSteps;
@@ -11,7 +12,9 @@ class Servo implements Motor {
     int currentDir;
     int currentSteps; // for move/hammer
     int indexSeq; // current position in sequence
+    int currentIndexSeq; // current position in sequence
     int lengthSeq; // length of seq.
+    int currentLengthSeq; // length of seq.
     long timeMS; // for speed
     int speed; // en ms
     int speedRPM; //en RPM
@@ -31,8 +34,10 @@ class Servo implements Motor {
         angleMin = amin;
         angleMax = amax;
         nSteps = 360;
-        for (int j = 0; j < MAX_SEQ; j++)
+        for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
+            currentSeq[j] = 0;
+        }
         angleSeq = 0;
         mode = MODE_IDLE;
         currentSteps = 0;
@@ -50,6 +55,8 @@ class Servo implements Motor {
         lengthSeq = 0;
         pause = 1000;
         isPaused = false;
+        currentIndexSeq = 0;
+        currentLengthSeq = 0;
         timeMS = millis();
     }
 
@@ -173,32 +180,33 @@ class Servo implements Motor {
         angleSeq = 0;
         indexSeq = 0;
         lengthSeq = 0;
-        newBeat = true;
     }
 
     void columnSQ(int v) {
         v = (v <= 0) ? 0 : v;
         if (angleSeq == 0)
             angleSeq = v;
-        else {
-            seq[indexSeq] = v;
-            indexSeq++;
-        }
+        else
+            seq[indexSeq++] = v;
     }
 
     void setSQ(int v) {
         currentDir = dir;
+        newBeat = true;
         if (angleSeq == 0) {
             angleSeq = v;
+            indexSeq = 0;
             seq[indexSeq] = 1;
             lengthSeq = 1;
         } else {
-            seq[indexSeq] = v;
-            indexSeq++;
+            seq[indexSeq++] = v;
             lengthSeq = indexSeq;
         }
-        angleSeq = int(angleSeq / 360.0 * nSteps);
+        currentLengthSeq = lengthSeq;
+        for (int i = 0; i < currentLengthSeq; i++)
+            currentSeq[i] = seq[i];
         indexSeq = 0;
+        currentIndexSeq = 0;
         steps = angleSeq;
         angleSeq = 0;
         currentSteps = 0;
@@ -287,7 +295,7 @@ class Servo implements Motor {
             if (newBeat) {
                 deQ();
                 newBeat = false;
-                int a = floor(indexSeq / 2);
+                int a = floor(currentIndexSeq / 2);
                 switch (seq[a]) {
                     case 2:
                         currentDir = 1 - dir;
@@ -299,23 +307,24 @@ class Servo implements Motor {
                 }
             }
             if ((millis() - timeMS) > speed) {
+                int a = floor(currentIndexSeq / 2);
                 if (currentSteps >= steps) {
-                    currentDir = 1 - currentDir;
+                    currentIndexSeq++;
                     currentSteps = 0;
                     indexSeq++;
-                    if ((indexSeq % 2) == 0)
+                    if (a >= currentLengthSeq)
+                        currentIndexSeq = 0;
+                    if ((currentIndexSeq % 2) == 0)
                         newBeat = true;
-                    int a = floor(indexSeq / 2);
-                    if (a >= lengthSeq)
-                        indexSeq = 0;
+                    else
+                        currentDir = 1 - currentDir;
                 } else {
-                    int a = floor(indexSeq / 2);
                     currentSteps++;
-                    if (seq[a] > 0) {
+                    if (currentSeq[a] > 0) {
                         servoStep();
                     }
-                    timeMS = millis();
                 }
+                timeMS = millis();
             }
         } else {
             ST();

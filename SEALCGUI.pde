@@ -241,9 +241,8 @@ void processCommand(char a) {
 						motors[selectedMotor].fillQ(MODE_WA, currentValue);
 						break;
 					case COMMAND_SA:
-						for (int i = 0; i < nMotors; i++) {
+						for (int i = 0; i < nMotors; i++)
 							motors[i].ST();
-						}
 						break;
 					case COMMAND_SELECT:
 					case COMMAND_ERROR:

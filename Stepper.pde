@@ -58,9 +58,9 @@ class Stepper implements Motor {
         lengthSeq = 0;
         pause = 1000;
         isPaused = false;
-        timeMS = millis();
         currentIndexSeq = 0;
         currentLengthSeq = 0;
+        timeMS = millis();
     }
 
     void setGraphics(int x, int y, int r) {
@@ -145,20 +145,10 @@ class Stepper implements Motor {
     }
 
     void setRO(int v) {
-        if (v <= 0) {
-            turns = 0;
-        } else {
-            turns = v;
-        }
+        turns = (v <= 0) ? 0 : v;
         steps = turns * nSteps;
         mode = MODE_RO;
         timeMS = millis();
-    }
-
-    void initRP() {
-        turns = 1;
-        pause = 1000;
-        isPaused = false;
     }
 
     void columnRP(int v) {
@@ -206,23 +196,20 @@ class Stepper implements Motor {
         v = (v <= 0) ? 0 : v;
         if (angleSeq == 0)
             angleSeq = v;
-        else {
-            seq[indexSeq] = v;
-            indexSeq++;
-        }
+        else
+            seq[indexSeq++] = v;
     }
 
     void setSQ(int v) {
+        v = (v <= 0) ? 0 : v;
         newBeat = true;
-        //currentDir = dir;
         if (angleSeq == 0) {
             angleSeq = v;
             indexSeq = 0;
             seq[indexSeq] = 1;
             lengthSeq = 1;
         } else {
-            seq[indexSeq] = v;
-            indexSeq++;
+            seq[indexSeq++] = v;
             lengthSeq = indexSeq;
         }
         currentLengthSeq = lengthSeq;
@@ -237,13 +224,31 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
+    void setSelected(boolean s) {
+        selected = s;
+    }
+
+    void setWA(int v) {
+        isPaused = false;
+        pause = (v < 0) ? 1000 : v;
+        mode = MODE_WA;
+        timeMS = millis();
+    }
+
+    void absoluteStepsDir() {
+        if (currentDir > 0)
+            absoluteSteps--;
+        else absoluteSteps++;
+        absoluteSteps %= nSteps;
+    }
+
     // move one step
     void moveStep() {
         if (currentSteps >= steps) {
             ST();
         } else {
             currentSteps++;
-            absoluteSteps = currentSteps % nSteps;
+            absoluteStepsDir();
             timeMS = millis();
         }
     }
@@ -298,12 +303,15 @@ class Stepper implements Motor {
                 if (turns == 0) {
                     currentSteps++;
                     currentSteps %= nSteps;
-                    absoluteSteps = currentSteps;
+                    absoluteStepsDir();
                     if (currentSteps == 0)
                         deQ();
                     timeMS = millis();
-                } else
+                } else {
                     moveStep();
+                    if ((currentSteps % nSteps) == 0)
+                        deQ();
+                }
             }
         } else {
             ST();
@@ -326,7 +334,7 @@ class Stepper implements Motor {
                         deQ();
                     } else {
                         currentSteps++;
-                        absoluteSteps = currentSteps % nSteps;
+                        absoluteStepsDir();
                     }
                     timeMS = millis();
                 }
@@ -361,9 +369,9 @@ class Stepper implements Motor {
                     if (realSteps == 0)
                         deQ();
                     currentSteps++;
-                    absoluteSteps = currentSteps % nSteps;
-                    timeMS = millis();
+                    absoluteStepsDir();
                 }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -410,36 +418,14 @@ class Stepper implements Motor {
                     else currentDir = 1 - currentDir;
                 } else {
                     currentSteps++;
-                    if (seq[a] > 0) {
-                        if (currentDir > 0)
-                            absoluteSteps--;
-                        else absoluteSteps++;
-                        absoluteSteps %= nSteps;
-                    } else absoluteSteps = 0;
+                    if (seq[a] > 0)
+                        absoluteStepsDir();
                 }
                 timeMS = millis();
             }
         } else {
             ST();
         }
-    }
-
-    void setSelected(boolean s) {
-        selected = s;
-    }
-
-    void initWA() {
-        pause = 1000;
-        isPaused = false;
-    }
-
-    void setWA(int v) {
-        isPaused = false;
-        v = (v < 0) ? 1000 : v;
-        pause = v;
-        pause = v;
-        mode = MODE_WA;
-        timeMS = millis();
     }
 
     void deQ() {
