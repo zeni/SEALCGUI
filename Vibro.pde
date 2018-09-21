@@ -31,7 +31,7 @@ class Vibro implements Motor {
             durationSeq[j] = 0;
             stateSeq[j] = 0;
             currentDurationSeq[j] = 0;
-            currentSateSeq[j] = 0;
+            currentStateSeq[j] = 0;
         }
         for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;

@@ -15,21 +15,6 @@ static final int TYPE_STEPPER = 0;
 static final char EOL = '\n';
 static final char SEPARATOR = ',';
 static final char COLUMN = ':';
-// commands
-static final int COMMAND_SELECT = 0;
-static final int COMMAND_SS = 1; // Set Speed
-static final int COMMAND_SD = 2; // Set Direction
-static final int COMMAND_RO = 3; // ROtate
-static final int COMMAND_ST = 4; // STop
-static final int COMMAND_RA = 5; // Rotate Angle (stepper) / Rotate Absolute (servo)
-static final int COMMAND_NONE = 6;
-static final int COMMAND_RW = 7; // Rotate Wave
-static final int COMMAND_SQ = 8; // SeQuence
-static final int COMMAND_ERROR = 9;
-static final int COMMAND_RP = 10; // Rotate Pause
-static final int COMMAND_SA = 15; // Stop All
-static final int COMMAND_RR = 16; // Rotate Angle (stepper) / Rotate Relative (servo)
-static final int COMMAND_WA = 17; // WAit command (ms)
 //modes
 static final int MODE_ST = 0;
 static final int MODE_RO = 1;
@@ -41,6 +26,25 @@ static final int MODE_WA = 6;
 static final int MODE_SD = 7;
 static final int MODE_RP = 8;
 static final int MODE_IDLE = 9;
+// commands
+static final int COMMAND_SELECT = 25;
+static final int COMMAND_SS = 10; // Set Speed
+static final int COMMAND_SD = MODE_SD; // Set Direction
+static final int COMMAND_RO = MODE_RO; // ROtate
+static final int COMMAND_ST = MODE_ST; // STop
+static final int COMMAND_RA = MODE_RA; // Rotate Angle (stepper) / Rotate Absolute (servo)
+static final int COMMAND_NONE = MODE_IDLE;
+static final int COMMAND_RW = MODE_RW; // Rotate Wave
+static final int COMMAND_SQ = MODE_SQ; // SeQuence
+static final int COMMAND_ERROR = 66;
+static final int COMMAND_RP = MODE_RP; // Rotate Pause
+static final int COMMAND_GS = 20; // Get Speed
+static final int COMMAND_GD = 21; // Get Direction
+static final int COMMAND_GM = 22; // Get Mode
+static final int COMMAND_GI = 23; // Get Id
+static final int COMMAND_SA = 24; // Stop All
+static final int COMMAND_RR = MODE_RR; // Rotate Angle (stepper) / Rotate Relative (servo)
+static final int COMMAND_WA = MODE_WA; // WAit command (ms)
 
 static final int MAX_SEQ = 10; // max length of sequence for beat
 static final int MAX_QUEUE = 10;
@@ -63,6 +67,9 @@ int iCommand;
 int currentValue, selectedMotor;
 int currentCommand;
 int motorSize;
+int[] commandsList = new int[MAX_QUEUE];
+int iCommandsList;
+PFont myFont;
 
 void setup() {
 	size(1200, 800, P3D);
@@ -78,10 +85,10 @@ void setup() {
 	portsList = Serial.list();
 	nPorts = portsList.length;
 	offsetX = 5;
-	offsetY = 5;
+	offsetY = 20;
 	offsetText = 2;
 	textBoxWidth = 500;
-	PFont myFont = loadFont("Arial-BoldMT-16.vlw");
+	myFont = loadFont("Arial-BoldMT-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
 	textLead = textSize + 4;
@@ -97,6 +104,9 @@ void setup() {
 	currentCommand = COMMAND_NONE;
 	motorSize = 30;
 	history = "";
+	for (int i = 0; i < MAX_QUEUE; i++)
+		commandsList[i] = COMMAND_NONE;
+	iCommandsList = 0;
 }
 
 void draw() {
@@ -106,7 +116,6 @@ void draw() {
 			selectPort();
 			break;
 		case STATE_CONNECT:
-			//char a = 0;
 			while (myPort.available() > 0)
 				inBuffer += myPort.readString();
 			if (inBuffer.length() > 0) {
@@ -120,9 +129,339 @@ void draw() {
 			writeTextBox(textBoxColor);
 			readTextBox();
 			historyBox();
+			displayHelp();
 			for (int i = 0; i < nMotors; i++) {
 				motors[i].display();
 				motors[i].action();
+			}
+			break;
+	}
+}
+
+void backspace() {
+	if (myText.length() > 0) {
+		if (iCommandsList > 0) {
+			char l1 = myText.charAt(myText.length() - 1);
+			char l2 = myText.charAt(myText.length() - 2);
+			if ((l1 >= 65) && (l1 < 91)) {
+				iCommandsList--;
+				commandsList[iCommandsList] = COMMAND_NONE;
+				iCommand = 1;
+				command[0] = l2;
+				command[1] = 0;
+			}
+		}
+		myText = myText.substring(0, myText.length() - 1);
+	}
+}
+
+void displayHelp() {
+	String s = "";
+	int l = 0;
+	textFont(myFont, textSize - 2);
+	int t = textSize + 2;
+	switch (iCommand) {
+		case 0:
+			break;
+		case 1:
+			switch (command[0]) {
+				case 'S':
+					s = "SS\nSD\nSQ\nST";
+					l = 4;
+					break;
+				case 'R':
+					s = "RA\nRO\nRP\nRR\nRW";
+					l = 5;
+					break;
+				case 'G':
+					s = "GI\nGD\nGM\nGS";
+					l = 4;
+					break;
+				case 'W':
+					s = "WA";
+					l = 1;
+					break;
+				default:
+					break;
+			}
+			break;
+		case 2:
+			l = 1;
+			switch (commandsList[iCommandsList - 1]) {
+				case COMMAND_RO:
+					s = "RO  rotate [0=cont./>0=turns|ms]";
+					break;
+				case COMMAND_RA:
+					s = "RA  rotate absolute [angle]";
+					break;
+				case COMMAND_RP:
+					s = "RP  rotate pause [turns|ms]:[pause ms]";
+					break;
+				case COMMAND_RR:
+					s = "RR  rotate relative [angle]";
+					break;
+				case COMMAND_RW:
+					s = "RW  rotate wave [waves/turn]";
+					break;
+				case COMMAND_SD:
+					s = "SD  set dir [0=CW/1=CCW]";
+					break;
+				case COMMAND_SQ:
+					s = "SQ  sequence [angle]:[0=off/1=dir/2=-dir]:[0-2]:~\n";
+					s += "SQ  sequence (vibro) [ms]:[0=off/1=on]:[ms]:[0-1]:~";
+					l = 2;
+					break;
+				case COMMAND_SS:
+					s = "SS  set speed [RPM]";
+					break;
+				case COMMAND_ST:
+					s = "ST  stop";
+					break;
+				case COMMAND_WA:
+					s = "WA  wait [ms]";
+					break;
+				case COMMAND_GD:
+					s = "GD  get dir";
+					break;
+				case COMMAND_GI:
+					s = "GI  get index/type";
+					break;
+				case COMMAND_GM:
+					s = "GM  get mode";
+					break;
+				case COMMAND_GS:
+					s = "GS  get speed";
+					break;
+			}
+			break;
+	}
+	if (s.length() > 0) {
+		fill(50, 50, 50);
+		stroke(200);
+		rect(offsetX + textWidth(myText), offsetY + textLead * 1.5, textWidth(s) * 1.25, t * l);
+		fill(255);
+		text(s, offsetX + textWidth(myText) + offsetText, offsetY + offsetText * 2 + textLead * 1.5);
+	}
+	textFont(myFont, textSize);
+}
+
+void processKeys(char k) {
+	if ((k >= 97) && (k < 123))
+		k -= 32;
+	switch (iCommand) {
+		case 0:
+			if ((k >= 48) && (k < 58)) {
+				myText += k;
+			} else {
+				switch (k) {
+					case BACKSPACE:
+						backspace();
+						break;
+					case DELETE:
+						myText = "";
+						command[0] = 0;
+						command[1] = 0;
+						iCommand = 0;
+						break;
+					case ENTER:
+					case RETURN:
+						command[0] = 0;
+						command[1] = 0;
+						iCommand = 0;
+						myText = myText + '\n';
+						history += myText;
+						sendText();
+						for (int i = 0; i < myText.length(); i++)
+							processCommand(myText.charAt(i));
+						myText = "";
+						break;
+					case 'S':
+					case 'R':
+					case 'G':
+					case 'W':
+						myText += k;
+						command[0] = k;
+						iCommand = 1;
+						break;
+					case SEPARATOR:
+						myText += k;
+						break;
+					default:
+						break;
+				}
+			}
+			break;
+		case 1:
+			switch (k) {
+				case BACKSPACE:
+					if (myText.length() > 0)
+						myText = myText.substring(0, myText.length() - 1);
+					iCommand = 0;
+					command[0] = 0;
+					break;
+				case DELETE:
+					myText = "";
+					command[0] = 0;
+					command[1] = 0;
+					iCommand = 0;
+					break;
+				case 'S':
+				case 'R':
+				case 'O':
+				case 'A':
+				case 'W':
+				case 'Q':
+				case 'D':
+				case 'T':
+				case 'P':
+				case 'M':
+				case 'I':
+					iCommand = 2;
+					command[1] = k;
+					break;
+				default:
+					break;
+			}
+			switch (command[0]) {
+				case 0:
+					break;
+				case 'S':
+					switch (command[1]) {
+						case 'S':
+							commandsList[iCommandsList++] = COMMAND_SS;
+							myText += command[1];
+							break;
+						case 'T':
+							commandsList[iCommandsList++] = COMMAND_ST;
+							myText += command[1];
+							break;
+						case 'D':
+							commandsList[iCommandsList++] = COMMAND_SD;
+							myText += command[1];
+							break;
+						case 'Q':
+							commandsList[iCommandsList++] = COMMAND_SQ;
+							myText += command[1];
+							break;
+						default:
+							iCommand = 1;
+							command[1] = 0;
+							break;
+					}
+					break;
+				case 'R':
+					switch (command[1]) {
+						case 'O':
+							commandsList[iCommandsList++] = COMMAND_RO;
+							myText += command[1];
+							break;
+						case 'A':
+							commandsList[iCommandsList++] = COMMAND_RA;
+							myText += command[1];
+							break;
+						case 'P':
+							commandsList[iCommandsList++] = COMMAND_RP;
+							myText += command[1];
+							break;
+						case 'W':
+							commandsList[iCommandsList++] = COMMAND_RW;
+							myText += command[1];
+							break;
+						case 'R':
+							commandsList[iCommandsList++] = COMMAND_RR;
+							myText += command[1];
+							break;
+						default:
+							iCommand = 1;
+							command[1] = 0;
+							break;
+					}
+					break;
+				case 'W':
+					if (command[1] == 'A') {
+						commandsList[iCommandsList++] = COMMAND_WA;
+						myText += command[1];
+					} else {
+						iCommand = 1;
+						command[1] = 0;
+					}
+					break;
+				case 'G':
+					switch (command[1]) {
+						case 'S':
+							commandsList[iCommandsList++] = COMMAND_GS;
+							myText += command[1];
+							break;
+						case 'M':
+							commandsList[iCommandsList++] = COMMAND_GM;
+							myText += command[1];
+							break;
+						case 'I':
+							commandsList[iCommandsList++] = COMMAND_GI;
+							myText += command[1];
+							break;
+						case 'D':
+							commandsList[iCommandsList++] = COMMAND_GD;
+							myText += command[1];
+							break;
+						default:
+							iCommand = 1;
+							command[1] = 0;
+							break;
+					}
+					break;
+			}
+			break;
+		case 2:
+			if ((k >= 48) && (k < 58)) {
+				myText += k;
+			} else {
+				switch (k) {
+					case ENTER:
+					case RETURN:
+						command[0] = 0;
+						command[1] = 0;
+						iCommand = 0;
+						myText = myText + '\n';
+						history += myText;
+						sendText();
+						for (int i = 0; i < myText.length(); i++)
+							processCommand(myText.charAt(i));
+						myText = "";
+						break;
+					case SEPARATOR:
+						myText += k;
+						command[0] = 0;
+						command[1] = 0;
+						iCommand = 0;
+						break;
+					case COLUMN:
+						if (iCommandsList > 0) {
+							switch (commandsList[iCommandsList - 1]) {
+								case COMMAND_SQ:
+								case COMMAND_RP:
+									myText += k;
+									break;
+							}
+						}
+						break;
+					case BACKSPACE:
+						/*if (myText.length() > 0)
+							myText = myText.substring(0, myText.length() - 1);
+						iCommand = 1;
+						command[1] = 0;*/
+						backspace();
+						break;
+					case DELETE:
+						myText = "";
+						command[0] = 0;
+						command[1] = 0;
+						iCommand = 0;
+						break;
+					default:
+						break;
+				}
+				break;
 			}
 			break;
 	}
@@ -137,29 +476,7 @@ void keyPressed() {
 			}
 			break;
 		case STATE_RUNNING:
-			switch (key) {
-				case BACKSPACE:
-					if (myText.length() > 0)
-						myText = myText.substring(0, myText.length() - 1);
-					break;
-				case DELETE:
-					myText = "";
-					break;
-				case ENTER:
-				case RETURN:
-					myText = myText + '\n';
-					history += myText;
-					sendText();
-					for (int i = 0; i < myText.length(); i++) {
-						processCommand(myText.charAt(i));
-					}
-					myText = "";
-					break;
-				default:
-					myText = myText + key;
-					myText = myText.toUpperCase();
-					break;
-			}
+			processKeys(key);
 			break;
 	}
 }
@@ -214,31 +531,15 @@ void processCommand(char a) {
 						motors[selectedMotor].SS(currentValue);
 						break;
 					case COMMAND_SD:
-						motors[selectedMotor].fillQ(MODE_SD, currentValue);
-						break;
 					case COMMAND_RO:
-						motors[selectedMotor].fillQ(MODE_RO, currentValue);
-						break;
 					case COMMAND_ST:
-						motors[selectedMotor].fillQ(MODE_ST, currentValue);
-						break;
 					case COMMAND_RA:
-						motors[selectedMotor].fillQ(MODE_RA, currentValue);
-						break;
 					case COMMAND_RR:
-						motors[selectedMotor].fillQ(MODE_RR, currentValue);
-						break;
 					case COMMAND_RW:
-						motors[selectedMotor].fillQ(MODE_RW, currentValue);
-						break;
 					case COMMAND_SQ:
-						motors[selectedMotor].fillQ(MODE_SQ, currentValue);
-						break;
 					case COMMAND_RP:
-						motors[selectedMotor].fillQ(MODE_RP, currentValue);
-						break;
 					case COMMAND_WA:
-						motors[selectedMotor].fillQ(MODE_WA, currentValue);
+						motors[selectedMotor].fillQ(currentCommand, currentValue);
 						break;
 					case COMMAND_SA:
 						for (int i = 0; i < nMotors; i++)
@@ -258,65 +559,49 @@ void processCommand(char a) {
 	} else if (iCommand == 2) {
 		currentCommand = COMMAND_ERROR;
 		switch (command[0]) {
-			case 's':
 			case 'S':
 				switch (command[1]) {
-					case 's':
 					case 'S':
 						currentCommand = COMMAND_SS; //SS
 						break;
-					case 'd':
 					case 'D':
 						currentCommand = COMMAND_SD; //SD
 						break;
-					case 't':
 					case 'T':
 						currentCommand = COMMAND_ST; //ST
 						break;
-					case 'a':
 					case 'A':
 						currentCommand = COMMAND_SA; //ST
 						break;
-					case 'q':
 					case 'Q':
 						currentCommand = COMMAND_SQ; //SQ
 						motors[selectedMotor].initSQ();
 						break;
 				}
 				break;
-			case 'r':
 			case 'R':
 				switch (command[1]) {
-					case 'o':
 					case 'O':
 						currentCommand = COMMAND_RO; //RO
 						break;
 					case 'W':
-					case 'w':
 						currentCommand = COMMAND_RW; //RW
 						break;
-					case 'a':
 					case 'A':
 						currentCommand = COMMAND_RA; //RA
 						break;
-					case 'r':
 					case 'R':
 						currentCommand = COMMAND_RR; //RA
 						break;
-					case 'p':
 					case 'P':
 						currentCommand = COMMAND_RP; //RP
-						//motors[selectedMotor]->initRP();
 						break;
 				}
 				break;
-			case 'w':
 			case 'W':
 				switch (command[1]) {
-					case 'a':
 					case 'A':
-						currentCommand = COMMAND_WA; //GS
-						//motors[selectedMotor]->initWA();
+						currentCommand = COMMAND_WA; //WA
 						break;
 				}
 				break;
