@@ -70,6 +70,7 @@ int motorSize;
 int[] commandsList = new int[MAX_QUEUE];
 int iCommandsList;
 PFont myFont;
+String myPortName;
 
 void setup() {
 	size(1200, 800, P3D);
@@ -107,6 +108,7 @@ void setup() {
 	for (int i = 0; i < MAX_QUEUE; i++)
 		commandsList[i] = COMMAND_NONE;
 	iCommandsList = 0;
+	myPortName = "";
 }
 
 void draw() {
@@ -116,6 +118,7 @@ void draw() {
 			selectPort();
 			break;
 		case STATE_CONNECT:
+			text("Connecting to " + myPortName + " ...", 20, 20);
 			while (myPort.available() > 0)
 				inBuffer += myPort.readString();
 			if (inBuffer.length() > 0) {
@@ -472,6 +475,7 @@ void keyPressed() {
 		case STATE_SELECT:
 			if ((int(key) >= 48) && (int(key) <= 48 + nPorts - 1)) {
 				myPort = new Serial(this, portsList[int(key) - 48], 115200);
+				myPortName = portsList[int(key) - 48];
 				state = STATE_CONNECT;
 			}
 			break;
