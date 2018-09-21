@@ -474,6 +474,7 @@ interface Motor {
     public String getType();
     public void fillQ(int m, int v);
     public void deQ();
+    int in ;
 }
 class Servo implements Motor {
     int angleMin, angleMax;
@@ -598,6 +599,7 @@ class Servo implements Motor {
                 s += "IDLE";
                 break;
         }
+        s += "\nAngle: " + angle;
         text(s, 0, 0);
         popMatrix();
     }
@@ -645,7 +647,6 @@ class Servo implements Motor {
             currentDir = 1;
         }
         steps = v;
-        println(angle + "/" + steps);
         currentSteps = 0;
         mode = MODE_RA;
         timeMS = millis();
@@ -750,7 +751,7 @@ class Servo implements Motor {
 
     public void ST() {
         currentSteps = 0;
-        mode = MODE_ST;
+        mode = MODE_IDLE;
         deQ();
     }
 
@@ -775,7 +776,7 @@ class Servo implements Motor {
                 deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
-                currentDir = (seq[a] < 2) ? dir : (1 - dir);
+                currentDir = (currentSeq[a] < 2) ? dir : (1 - dir);
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
@@ -1006,6 +1007,7 @@ class Stepper implements Motor {
                 s += "IDLE";
                 break;
         }
+        s += "\nAngle: " + absoluteSteps * 360.0f / nSteps;
         text(s, 0, 0);
         popMatrix();
     }
@@ -1364,7 +1366,8 @@ class Vibro implements Motor {
     boolean isOn;
     int[] durationSeq = new int[MAX_SEQ];
     int[] stateSeq = new int[MAX_SEQ];
-    int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int[] durationSeq = new int[MAX_SEQ];
+    int[] stateSeq = new int[MAX_SEQ];
     int id;
     int mode;
     int indexSeq; // current position in sequence
@@ -1474,14 +1477,8 @@ class Vibro implements Motor {
         timeMS = millis();
     }
 
-    public void initRP() {
-        duration = 1000;
-        pause = 1000;
-        isPaused = false;
-    }
-
     public void columnRP(int v) {
-        duration = (v <= 0) ? 1 : v;
+        duration = (v <= 0) ? 1000 : v;
     }
 
     public void setRP(int v) {

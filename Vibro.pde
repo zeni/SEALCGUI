@@ -3,11 +3,14 @@ class Vibro implements Motor {
     boolean isOn;
     int[] durationSeq = new int[MAX_SEQ];
     int[] stateSeq = new int[MAX_SEQ];
-    int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
+    int[] currentDurationSeq = new int[MAX_SEQ];
+    int[] currentStateSeq = new int[MAX_SEQ];
     int id;
     int mode;
     int indexSeq; // current position in sequence
     int lengthSeq; // length of seq.
+    int currentIndexSeq; // current position in sequence
+    int currentLengthSeq; // length of seq.
     long timeMS; // for speed
     boolean newBeat;
     int[] modesQ = new int[MAX_QUEUE];
@@ -27,6 +30,8 @@ class Vibro implements Motor {
         for (int j = 0; j < MAX_SEQ; j++) {
             durationSeq[j] = 0;
             stateSeq[j] = 0;
+            currentDurationSeq[j] = 0;
+            currentSateSeq[j] = 0;
         }
         for (int j = 0; j < MAX_QUEUE; j++) {
             modesQ[j] = MODE_IDLE;
@@ -35,6 +40,8 @@ class Vibro implements Motor {
         sizeQ = 0;
         indexSeq = 0;
         lengthSeq = 0;
+        currentIndexSeq = 0;
+        currentLengthSeq = 0;
         duration = 0;
         pause = 1000;
         isPaused = false;
@@ -113,14 +120,8 @@ class Vibro implements Motor {
         timeMS = millis();
     }
 
-    void initRP() {
-        duration = 1000;
-        pause = 1000;
-        isPaused = false;
-    }
-
     void columnRP(int v) {
-        duration = (v <= 0) ? 1 : v;
+        duration = (v <= 0) ? 1000 : v;
     }
 
     void setRP(int v) {
@@ -150,10 +151,17 @@ class Vibro implements Motor {
 
     void setSQ(int v) {
         v = (v <= 0) ? 0 : 1;
+        newBeat = true;
         stateSeq[(indexSeq - 1) / 2] = v;
         indexSeq++;
         lengthSeq = indexSeq / 2;
         indexSeq = 0;
+        currentLengthSeq = lengthSeq;
+        for (int i = 0; i < currentLengthSeq; i++) {
+            currentDurationSeq[i] = durationSeq[i];
+            currentStateSeq[i] = stateSeq[i];
+        }
+        currentIndexSeq = 0;
         mode = MODE_SQ;
         timeMS = millis();
     }
@@ -229,14 +237,14 @@ class Vibro implements Motor {
     void SQ() {
         if (newBeat) {
             deQ();
-            isOn = stateSeq[indexSeq] > 0;
+            isOn = currentStateSeq[currentIndexSeq] > 0;
             newBeat = false;
         }
-        if ((millis() - timeMS) > durationSeq[indexSeq]) {
+        if ((millis() - timeMS) > currentDurationSeq[currentIndexSeq]) {
             newBeat = true;
-            indexSeq++;
-            if (indexSeq >= lengthSeq)
-                indexSeq = 0;
+            currentIndexSeq++;
+            if (currentIndexSeq >= currentLengthSeq)
+                currentIndexSeq = 0;
             timeMS = millis();
         }
     }

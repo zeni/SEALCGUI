@@ -121,6 +121,7 @@ class Servo implements Motor {
                 s += "IDLE";
                 break;
         }
+        s += "\nAngle: " + angle;
         text(s, 0, 0);
         popMatrix();
     }
@@ -168,7 +169,6 @@ class Servo implements Motor {
             currentDir = 1;
         }
         steps = v;
-        println(angle + "/" + steps);
         currentSteps = 0;
         mode = MODE_RA;
         timeMS = millis();
@@ -273,7 +273,7 @@ class Servo implements Motor {
 
     void ST() {
         currentSteps = 0;
-        mode = MODE_ST;
+        mode = MODE_IDLE;
         deQ();
     }
 
@@ -298,7 +298,7 @@ class Servo implements Motor {
                 deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
-                currentDir = (seq[a] < 2) ? dir : (1 - dir);
+                currentDir = (currentSeq[a] < 2) ? dir : (1 - dir);
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);

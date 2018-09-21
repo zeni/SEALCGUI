@@ -125,6 +125,7 @@ class Stepper implements Motor {
                 s += "IDLE";
                 break;
         }
+        s += "\nAngle: " + absoluteSteps * 360.0 / nSteps;
         text(s, 0, 0);
         popMatrix();
     }
