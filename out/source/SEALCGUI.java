@@ -18,7 +18,8 @@ public class SEALCGUI extends PApplet {
 
 /**
  * GUI for SEALC
- *
+ * TODO:
+ * - add time compensation when speed (in ms) is lower than frame duration.
  **/
 
 
@@ -89,6 +90,7 @@ int[] commandsList = new int[MAX_QUEUE];
 int iCommandsList;
 PFont myFont;
 String myPortName;
+int iPort;
 
 public void setup() {
 	
@@ -127,6 +129,7 @@ public void setup() {
 		commandsList[i] = COMMAND_NONE;
 	iCommandsList = 0;
 	myPortName = "";
+	iPort = 0;
 }
 
 public void draw() {
@@ -491,11 +494,28 @@ public void processKeys(char k) {
 public void keyPressed() {
 	switch (state) {
 		case STATE_SELECT:
-			if ((PApplet.parseInt(key) >= 48) && (PApplet.parseInt(key) <= 48 + nPorts - 1)) {
-				myPort = new Serial(this, portsList[PApplet.parseInt(key) - 48], 115200);
-				myPortName = portsList[PApplet.parseInt(key) - 48];
+			/*if ((int(key) >= 48) && (int(key) <= 48 + nPorts - 1)) {
+				myPort = new Serial(this, portsList[int(key) - 48], 115200);
+				myPortName = portsList[int(key) - 48];
 				state = STATE_CONNECT;
+			}*/
+			switch (key) {
+				case RETURN:
+				case ENTER:
+					myPort = new Serial(this, portsList[iPort], 115200);
+					myPortName = portsList[iPort];
+					state = STATE_CONNECT;
+					break;
+				case LEFT:
+					iPort--;
+					if (iPort < 0) iPort = 0;
+					break;
+				case RIGHT:
+					iPort++;
+					if (iPort >= nPorts) iPort = nPorts - 1;
+					break;
 			}
+			println(iPort);
 			break;
 		case STATE_RUNNING:
 			processKeys(key);
@@ -707,12 +727,10 @@ public void selectPort() {
 	translate(offsetX, offsetY);
 	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
-	String portsListString = "Please select port:\n";
-	for (int i = 0; i < nPorts; i++) {
-		portsListString += "[" + i + "] ";
-		portsListString += portsList[i];
-		portsListString += "\n";
-	}
+	String portsListString = "Please select port (<- ->):\n";
+	portsListString += "[" + iPort + "] ";
+	portsListString += portsList[iPort];
+	portsListString += "\n";
 	text(portsListString, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
 	popMatrix();
 }
