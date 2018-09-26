@@ -3,6 +3,7 @@ class Stepper implements Motor {
     int turns; // for rotate (0=continuous rotation)
     int realSteps;
     int absoluteSteps;
+    int absoluteStepsIdle;
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
     int[] currentSeq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
@@ -30,22 +31,25 @@ class Stepper implements Motor {
     int radius;
     int type;
     boolean selected;
+    int inc;
 
     Stepper(int n, int i) {
         id = i;
         waveDir = 0;
         nSteps = n;
+        currentSteps = 0;
         realSteps = currentSteps;
         absoluteSteps = currentSteps;
+        absoluteStepsIdle = absoluteSteps;
         for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
             currentSeq[j] = 0;
         }
         angleSeq = 0;
         speedRPM = 12;
-        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+        speed = floor(60000.0 / (speedRPM * nSteps));
+        inc = getInc();
         mode = MODE_IDLE;
-        currentSteps = 0;
         steps = 0;
         dir = 0;
         currentDir = dir;
@@ -135,8 +139,9 @@ class Stepper implements Motor {
     }
 
     void SS(int v) {
-        speedRPM = (v > 0) ? v : 0;
-        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+        speedRPM = (v > 60000.0 / nSteps) ? floor(60000.0 / nSteps) : v;
+        speed = (speedRPM > 0) ? (floor(60000.0 / (speedRPM * nSteps))) : 0;
+        inc = getInc();
     }
 
     void setSD(int v) {
@@ -236,22 +241,18 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
-    void absoluteStepsDir() {
-        if (currentDir > 0)
-            absoluteSteps--;
-        else absoluteSteps++;
-        absoluteSteps %= nSteps;
+    int getInc() {
+        float f = 1000 / frameRate;
+        int i = (f > speed) ? round(f / speed) : 1;
+        return i;
     }
 
-    // move one step
-    void moveStep() {
-        if (currentSteps >= steps) {
-            ST();
-        } else {
-            currentSteps++;
-            absoluteStepsDir();
-            timeMS = millis();
-        }
+    void absoluteStepsDir() {
+        currentSteps += inc;
+        if (currentDir > 0)
+            absoluteSteps -= inc;
+        else absoluteSteps += inc;
+        absoluteSteps %= nSteps;
     }
 
     void action() {
@@ -301,18 +302,24 @@ class Stepper implements Motor {
     void RO() {
         if (speed > 0) {
             if ((millis() - timeMS) >= speed) {
+                int iturns = floor(float(currentSteps) / nSteps) + 1;
                 if (turns == 0) {
-                    currentSteps++;
-                    currentSteps %= nSteps;
                     absoluteStepsDir();
-                    if (currentSteps == 0)
+                    if (currentSteps >= nSteps * iturns) {
+                        currentSteps %= nSteps;
                         deQ();
-                    timeMS = millis();
+                    }
                 } else {
-                    moveStep();
-                    if ((currentSteps % nSteps) == 0)
-                        deQ();
+                    if (currentSteps >= steps)
+                        ST();
+                    else {
+                        absoluteStepsDir();
+                        if (currentSteps >= nSteps * iturns)
+                            deQ();
+                    }
+
                 }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -332,10 +339,13 @@ class Stepper implements Motor {
                     if (currentSteps >= steps) {
                         isPaused = true;
                         currentSteps = 0;
+                        absoluteSteps = absoluteStepsIdle;
                         deQ();
                     } else {
-                        currentSteps++;
+                        int iturns = floor(float(currentSteps) / nSteps) + 1;
                         absoluteStepsDir();
+                        if (currentSteps >= nSteps * iturns)
+                            deQ();
                     }
                     timeMS = millis();
                 }
@@ -349,7 +359,13 @@ class Stepper implements Motor {
     void RA() {
         if (speed > 0) {
             if ((millis() - timeMS) > speed) {
-                moveStep();
+                if (currentSteps >= steps) {
+                    ST();
+                    absoluteStepsIdle = steps;
+                    absoluteSteps = absoluteStepsIdle;
+                } else
+                    absoluteStepsDir();
+                timeMS = millis();
             }
         } else {
             ST();
@@ -365,12 +381,12 @@ class Stepper implements Motor {
                     waveDir = 1 - waveDir;
                     currentSteps = 0;
                 } else {
-                    realSteps++;
-                    realSteps %= nSteps;
-                    if (realSteps == 0)
-                        deQ();
-                    currentSteps++;
+                    realSteps += inc;
                     absoluteStepsDir();
+                    if (realSteps >= nSteps) {
+                        realSteps %= nSteps;
+                        deQ();
+                    }
                 }
                 timeMS = millis();
             }
@@ -385,16 +401,14 @@ class Stepper implements Motor {
                 isPaused = false;
                 ST();
             }
-        } else {
+        } else
             isPaused = true;
-        }
     }
 
     // continuous hammer movement with pattern of angles
     void SQ() {
         if (speed > 0) {
             if (newBeat) {
-                deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
                 switch (currentSeq[a]) {
@@ -406,6 +420,7 @@ class Stepper implements Motor {
                         currentDir = dir;
                         break;
                 }
+                deQ();
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
@@ -418,9 +433,10 @@ class Stepper implements Motor {
                         newBeat = true;
                     else currentDir = 1 - currentDir;
                 } else {
-                    currentSteps++;
                     if (seq[a] > 0)
                         absoluteStepsDir();
+                    else
+                        currentSteps += inc;
                 }
                 timeMS = millis();
             }
@@ -434,6 +450,7 @@ class Stepper implements Motor {
             case MODE_IDLE:
                 break;
             case MODE_ST:
+                absoluteSteps = absoluteStepsIdle;
                 mode = modesQ[0];
                 break;
             case MODE_RO:

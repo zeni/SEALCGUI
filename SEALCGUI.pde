@@ -128,7 +128,8 @@ void draw() {
 				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
 					state = STATE_RUNNING;
-				}
+				} else
+					state = STATE_SELECT;
 			}
 			break;
 		case STATE_RUNNING:
@@ -452,10 +453,6 @@ void processKeys(char k) {
 						}
 						break;
 					case BACKSPACE:
-						/*if (myText.length() > 0)
-							myText = myText.substring(0, myText.length() - 1);
-						iCommand = 1;
-						command[1] = 0;*/
 						backspace();
 						break;
 					case DELETE:
@@ -476,11 +473,6 @@ void processKeys(char k) {
 void keyPressed() {
 	switch (state) {
 		case STATE_SELECT:
-			/*if ((int(key) >= 48) && (int(key) <= 48 + nPorts - 1)) {
-				myPort = new Serial(this, portsList[int(key) - 48], 115200);
-				myPortName = portsList[int(key) - 48];
-				state = STATE_CONNECT;
-			}*/
 			switch (key) {
 				case RETURN:
 				case ENTER:
@@ -488,13 +480,17 @@ void keyPressed() {
 					myPortName = portsList[iPort];
 					state = STATE_CONNECT;
 					break;
-				case LEFT:
-					iPort--;
-					if (iPort < 0) iPort = 0;
-					break;
-				case RIGHT:
-					iPort++;
-					if (iPort >= nPorts) iPort = nPorts - 1;
+				case CODED:
+					switch (key) {
+						case LEFT:
+							iPort--;
+							if (iPort < 0) iPort = nPorts - 1;
+							break;
+						case RIGHT:
+							iPort++;
+							if (iPort >= nPorts) iPort = 0;
+							break;
+					}
 					break;
 			}
 			break;

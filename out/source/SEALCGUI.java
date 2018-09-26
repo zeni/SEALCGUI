@@ -146,7 +146,8 @@ public void draw() {
 				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
 					state = STATE_RUNNING;
-				}
+				} else
+					state = STATE_SELECT;
 			}
 			break;
 		case STATE_RUNNING:
@@ -470,10 +471,6 @@ public void processKeys(char k) {
 						}
 						break;
 					case BACKSPACE:
-						/*if (myText.length() > 0)
-							myText = myText.substring(0, myText.length() - 1);
-						iCommand = 1;
-						command[1] = 0;*/
 						backspace();
 						break;
 					case DELETE:
@@ -494,11 +491,6 @@ public void processKeys(char k) {
 public void keyPressed() {
 	switch (state) {
 		case STATE_SELECT:
-			/*if ((int(key) >= 48) && (int(key) <= 48 + nPorts - 1)) {
-				myPort = new Serial(this, portsList[int(key) - 48], 115200);
-				myPortName = portsList[int(key) - 48];
-				state = STATE_CONNECT;
-			}*/
 			switch (key) {
 				case RETURN:
 				case ENTER:
@@ -506,16 +498,19 @@ public void keyPressed() {
 					myPortName = portsList[iPort];
 					state = STATE_CONNECT;
 					break;
-				case LEFT:
-					iPort--;
-					if (iPort < 0) iPort = 0;
-					break;
-				case RIGHT:
-					iPort++;
-					if (iPort >= nPorts) iPort = nPorts - 1;
+				case CODED:
+					switch (key) {
+						case LEFT:
+							iPort--;
+							if (iPort < 0) iPort = nPorts - 1;
+							break;
+						case RIGHT:
+							iPort++;
+							if (iPort >= nPorts) iPort = 0;
+							break;
+					}
 					break;
 			}
-			println(iPort);
 			break;
 		case STATE_RUNNING:
 			processKeys(key);
@@ -911,7 +906,7 @@ class Servo implements Motor {
     }
 
     public void SS(int v) {
-        speedRPM = (v > 0) ? v : 0;
+        speedRPM = (v > 60000.0f / nSteps) ? floor(60000.0f / nSteps) : v;
         speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
     }
 
@@ -1191,6 +1186,7 @@ class Stepper implements Motor {
     int turns; // for rotate (0=continuous rotation)
     int realSteps;
     int absoluteSteps;
+    int absoluteStepsIdle;
     int[] seq = new int[MAX_SEQ]; // seq. of angles for beat
     int[] currentSeq = new int[MAX_SEQ]; // seq. of angles for beat
     int angleSeq; // angle value for seq.
@@ -1218,22 +1214,25 @@ class Stepper implements Motor {
     int radius;
     int type;
     boolean selected;
+    int inc;
 
     Stepper(int n, int i) {
         id = i;
         waveDir = 0;
         nSteps = n;
+        currentSteps = 0;
         realSteps = currentSteps;
         absoluteSteps = currentSteps;
+        absoluteStepsIdle = absoluteSteps;
         for (int j = 0; j < MAX_SEQ; j++) {
             seq[j] = 0;
             currentSeq[j] = 0;
         }
         angleSeq = 0;
         speedRPM = 12;
-        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+        speed = floor(60000.0f / (speedRPM * nSteps));
+        inc = getInc();
         mode = MODE_IDLE;
-        currentSteps = 0;
         steps = 0;
         dir = 0;
         currentDir = dir;
@@ -1323,8 +1322,9 @@ class Stepper implements Motor {
     }
 
     public void SS(int v) {
-        speedRPM = (v > 0) ? v : 0;
-        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+        speedRPM = (v > 60000.0f / nSteps) ? floor(60000.0f / nSteps) : v;
+        speed = (speedRPM > 0) ? (floor(60000.0f / (speedRPM * nSteps))) : 0;
+        inc = getInc();
     }
 
     public void setSD(int v) {
@@ -1424,10 +1424,16 @@ class Stepper implements Motor {
         timeMS = millis();
     }
 
+    public int getInc() {
+        float f = 1000 / frameRate;
+        int i = (f > speed) ? round(f / speed) : 1;
+        return i;
+    }
+
     public void absoluteStepsDir() {
         if (currentDir > 0)
-            absoluteSteps--;
-        else absoluteSteps++;
+            absoluteSteps -= inc;
+        else absoluteSteps += inc;
         absoluteSteps %= nSteps;
     }
 
@@ -1436,7 +1442,7 @@ class Stepper implements Motor {
         if (currentSteps >= steps) {
             ST();
         } else {
-            currentSteps++;
+            currentSteps += inc;
             absoluteStepsDir();
             timeMS = millis();
         }
@@ -1489,18 +1495,26 @@ class Stepper implements Motor {
     public void RO() {
         if (speed > 0) {
             if ((millis() - timeMS) >= speed) {
+                int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
                 if (turns == 0) {
-                    currentSteps++;
-                    currentSteps %= nSteps;
+                    currentSteps += inc;
                     absoluteStepsDir();
-                    if (currentSteps == 0)
+                    if (currentSteps >= nSteps * iturns) {
                         deQ();
-                    timeMS = millis();
+                        currentSteps %= nSteps;
+                    }
                 } else {
-                    moveStep();
-                    if ((currentSteps % nSteps) == 0)
-                        deQ();
+                    if (currentSteps >= steps)
+                        ST();
+                    else {
+                        currentSteps += inc;
+                        absoluteStepsDir();
+                        if (currentSteps >= nSteps * iturns)
+                            deQ();
+                    }
+
                 }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -1520,10 +1534,14 @@ class Stepper implements Motor {
                     if (currentSteps >= steps) {
                         isPaused = true;
                         currentSteps = 0;
+                        absoluteSteps = 0;
                         deQ();
                     } else {
-                        currentSteps++;
+                        int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
+                        currentSteps += inc;
                         absoluteStepsDir();
+                        if (currentSteps >= nSteps * iturns)
+                            deQ();
                     }
                     timeMS = millis();
                 }
@@ -1537,7 +1555,15 @@ class Stepper implements Motor {
     public void RA() {
         if (speed > 0) {
             if ((millis() - timeMS) > speed) {
-                moveStep();
+                if (currentSteps >= steps) {
+                    ST();
+                    absoluteStepsIdle = steps;
+                    absoluteSteps = absoluteStepsIdle;
+                } else {
+                    currentSteps += inc;
+                    absoluteStepsDir();
+                    timeMS = millis();
+                }
             }
         } else {
             ST();
@@ -1553,12 +1579,13 @@ class Stepper implements Motor {
                     waveDir = 1 - waveDir;
                     currentSteps = 0;
                 } else {
-                    realSteps++;
-                    realSteps %= nSteps;
-                    if (realSteps == 0)
-                        deQ();
-                    currentSteps++;
+                    realSteps += inc;
+                    currentSteps += inc;
                     absoluteStepsDir();
+                    if (realSteps >= nSteps) {
+                        deQ();
+                        realSteps %= nSteps;
+                    }
                 }
                 timeMS = millis();
             }
@@ -1606,7 +1633,7 @@ class Stepper implements Motor {
                         newBeat = true;
                     else currentDir = 1 - currentDir;
                 } else {
-                    currentSteps++;
+                    currentSteps += inc;
                     if (seq[a] > 0)
                         absoluteStepsDir();
                 }
@@ -1622,6 +1649,17 @@ class Stepper implements Motor {
             case MODE_IDLE:
                 break;
             case MODE_ST:
+                /*switch (mode) {
+                    case MODE_RO:
+                    case MODE_RP:
+                    case MODE_RW:
+                        absoluteSteps = 0;
+                        break;
+                    case MODE_RA:
+                        absoluteSteps = steps;
+                        break;
+                }*/
+                absoluteSteps = absoluteStepsIdle;
                 mode = modesQ[0];
                 break;
             case MODE_RO:

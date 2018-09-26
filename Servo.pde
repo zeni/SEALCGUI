@@ -51,7 +51,7 @@ class Servo implements Motor {
         }
         sizeQ = 0;
         speedRPM = 12;
-        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+        speed = floor(60000.0 / (speedRPM * nSteps));
         indexSeq = 0;
         lengthSeq = 0;
         pause = 1000;
@@ -127,8 +127,8 @@ class Servo implements Motor {
     }
 
     void SS(int v) {
-        speedRPM = (v > 0) ? v : 0;
-        speed = (speedRPM > 0) ? (floor(60.0 / (speedRPM * nSteps) * 1000)) : 0;
+        speedRPM = (v > 60000.0 / nSteps) ? floor(60000.0 / nSteps) : v;
+        speed = (speedRPM > 0) ? (floor(60000.0 / (speedRPM * nSteps))) : 0;
     }
 
     String getType() {
