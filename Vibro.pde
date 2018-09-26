@@ -54,24 +54,24 @@ class Vibro implements Motor {
         radius = r;
     }
 
-    void display() {
-        noFill();
+    void display(SecondApplet sa) {
+        sa.noFill();
         if (selected)
-            stroke(255, 0, 0);
-        else stroke(255);
-        pushMatrix();
-        translate(xPos, yPos);
+            sa.stroke(255, 0, 0);
+        else sa.stroke(255);
+        sa.pushMatrix();
+        sa.translate(xPos, yPos);
         if (isOn)
-            ellipse(random(5), random(5), 2 * radius, 2 * radius);
+            sa.ellipse(random(5), random(5), 2 * radius, 2 * radius);
         else
-            ellipse(0, 0, 2 * radius, 2 * radius);
-        popMatrix();
-        pushMatrix();
-        translate(xPos - radius, yPos + 2 * radius);
+            sa.ellipse(0, 0, 2 * radius, 2 * radius);
+        sa.popMatrix();
+        sa.pushMatrix();
+        sa.translate(xPos - radius, yPos + 2 * radius);
         if (selected)
-            fill(255, 0, 0);
+            sa.fill(255, 0, 0);
         else
-            fill(255);
+            sa.fill(255);
         String s = id + getType() + "\n";
         s += "Mode: ";
         switch (mode) {
@@ -106,8 +106,8 @@ class Vibro implements Motor {
                 s += "IDLE";
                 break;
         }
-        text(s, 0, 0);
-        popMatrix();
+        sa.text(s, 0, 0);
+        sa.popMatrix();
     }
 
     String getType() {

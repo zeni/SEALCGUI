@@ -67,7 +67,7 @@ class Servo implements Motor {
         radius = r;
     }
 
-    void display() {
+    void display(SecondApplet sa) {
         noFill();
         if (selected)
             stroke(255, 0, 0);

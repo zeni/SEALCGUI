@@ -91,10 +91,14 @@ int iCommandsList;
 PFont myFont;
 String myPortName;
 int iPort;
+SecondApplet sa;
+
+
+public void settings() {
+	size(600, 800, P3D);
+}
 
 public void setup() {
-	
-	frameRate(1000);
 	bgColor = color(40, 50, 50);
 	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
@@ -142,6 +146,7 @@ public void draw() {
 			if (inBuffer.length() > 0) {
 				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
+					sa = new SecondApplet();
 					state = STATE_RUNNING;
 				} else
 					state = STATE_SELECT;
@@ -153,7 +158,7 @@ public void draw() {
 			historyBox();
 			displayHelp();
 			for (int i = 0; i < nMotors; i++) {
-				motors[i].display();
+				//motors[i].display();
 				motors[i].action();
 			}
 			break;
@@ -769,11 +774,37 @@ public void sendSetup() {
 	}
 	motors[selectedMotor].setSelected(true);
 }
+
+class SecondApplet extends PApplet {
+
+	Motor m;
+
+	SecondApplet() {
+		super();
+		PApplet.runSketch(new String[] {
+			this.getClass().getSimpleName()
+		}, this);
+	}
+
+	public void settings() {
+		size(600, 800, P3D);
+	}
+
+	public void setup() {
+		frameRate(1000);
+		//motors[0].display();
+	}
+
+	public void draw() {
+		background(bgColor);
+		motors[0].display(this);
+	}
+}
 interface Motor {
     public void setSelected(boolean s);
     public void columnSQ(int v);
     public void setGraphics(int x, int y, int r);
-    public void display();
+    public void display(SecondApplet sa);
     public void SS(int v);
     public void initSQ();
     public void columnRP(int v);
@@ -851,7 +882,7 @@ class Servo implements Motor {
         radius = r;
     }
 
-    public void display() {
+    public void display(SecondApplet sa) {
         noFill();
         if (selected)
             stroke(255, 0, 0);
@@ -1261,7 +1292,7 @@ class Stepper implements Motor {
         radius = r;
     }
 
-    public void display() {
+    public void display(SecondApplet sa) {
         noFill();
         if (selected)
             stroke(255, 0, 0);
@@ -1740,24 +1771,24 @@ class Vibro implements Motor {
         radius = r;
     }
 
-    public void display() {
-        noFill();
+    public void display(SecondApplet sa) {
+        sa.noFill();
         if (selected)
-            stroke(255, 0, 0);
-        else stroke(255);
-        pushMatrix();
-        translate(xPos, yPos);
+            sa.stroke(255, 0, 0);
+        else sa.stroke(255);
+        sa.pushMatrix();
+        sa.translate(xPos, yPos);
         if (isOn)
-            ellipse(random(5), random(5), 2 * radius, 2 * radius);
+            sa.ellipse(random(5), random(5), 2 * radius, 2 * radius);
         else
-            ellipse(0, 0, 2 * radius, 2 * radius);
-        popMatrix();
-        pushMatrix();
-        translate(xPos - radius, yPos + 2 * radius);
+            sa.ellipse(0, 0, 2 * radius, 2 * radius);
+        sa.popMatrix();
+        sa.pushMatrix();
+        sa.translate(xPos - radius, yPos + 2 * radius);
         if (selected)
-            fill(255, 0, 0);
+            sa.fill(255, 0, 0);
         else
-            fill(255);
+            sa.fill(255);
         String s = id + getType() + "\n";
         s += "Mode: ";
         switch (mode) {
@@ -1792,8 +1823,8 @@ class Vibro implements Motor {
                 s += "IDLE";
                 break;
         }
-        text(s, 0, 0);
-        popMatrix();
+        sa.text(s, 0, 0);
+        sa.popMatrix();
     }
 
     public String getType() {
@@ -2027,7 +2058,6 @@ class Vibro implements Motor {
 
     public void setSD(int v) {}
 }
-  public void settings() { 	size(1200, 800, P3D); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "SEALCGUI" };
     if (passedArgs != null) {

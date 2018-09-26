@@ -73,10 +73,14 @@ int iCommandsList;
 PFont myFont;
 String myPortName;
 int iPort;
+SecondApplet sa;
+
+
+void settings() {
+	size(600, 800, P3D);
+}
 
 void setup() {
-	size(1200, 800, P3D);
-	frameRate(1000);
 	bgColor = color(40, 50, 50);
 	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
@@ -124,6 +128,7 @@ void draw() {
 			if (inBuffer.length() > 0) {
 				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
+					sa = new SecondApplet();
 					state = STATE_RUNNING;
 				} else
 					state = STATE_SELECT;
@@ -135,7 +140,7 @@ void draw() {
 			historyBox();
 			displayHelp();
 			for (int i = 0; i < nMotors; i++) {
-				motors[i].display();
+				//motors[i].display();
 				motors[i].action();
 			}
 			break;
@@ -750,4 +755,30 @@ void sendSetup() {
 		e.printStackTrace();
 	}
 	motors[selectedMotor].setSelected(true);
+}
+
+class SecondApplet extends PApplet {
+
+	Motor m;
+
+	SecondApplet() {
+		super();
+		PApplet.runSketch(new String[] {
+			this.getClass().getSimpleName()
+		}, this);
+	}
+
+	public void settings() {
+		size(600, 800, P3D);
+	}
+
+	public void setup() {
+		frameRate(1000);
+		//motors[0].display();
+	}
+
+	public void draw() {
+		background(bgColor);
+		motors[0].display(this);
+	}
 }
