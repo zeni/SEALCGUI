@@ -137,14 +137,16 @@ public void draw() {
 			break;
 		case STATE_CONNECT:
 			text("Connecting to " + myPortName + " ...", 20, 20);
-			while (myPort.available() > 0)
+			while (myPort.available() > 0) {
 				inBuffer += myPort.readString();
+				println(inBuffer);
+			}
 			if (inBuffer.length() > 0) {
-				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
+				//if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
 					state = STATE_RUNNING;
-				} else
-					state = STATE_SELECT;
+				//} else
+				//	state = STATE_SELECT;
 			}
 			break;
 		case STATE_RUNNING:
@@ -182,6 +184,7 @@ public void delete() {
 	command[0] = 0;
 	command[1] = 0;
 	iCommand = 0;
+	iCommandsList=0;
 }
 
 public void enter() {
@@ -194,6 +197,7 @@ public void enter() {
 	for (int i = 0; i < myText.length(); i++)
 		processCommand(myText.charAt(i));
 	myText = "";
+	iCommandsList=0;
 }
 
 public void displayHelp() {
@@ -490,7 +494,7 @@ public void keyPressed() {
 					state = STATE_CONNECT;
 					break;
 				case CODED:
-					switch (key) {
+					switch (keyCode) {
 						case LEFT:
 							iPort--;
 							if (iPort < 0) iPort = nPorts - 1;
