@@ -162,7 +162,7 @@ class Servo implements Motor {
     void setRA(int v) {
         v = (v < angleMin) ? angleMin : ((v > angleMax) ? angleMax : v);
         if (v >= angle) {
-            v = v - angle;
+            v -= angle;
             currentDir = 0;
         } else {
             v = angle - v;

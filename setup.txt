@@ -1,4 +1,6 @@
+#nb. of motors
 5
+# type (0:stepper, 1:servo, 2:vibro),arg1,arg2,arg3
 2,2,0,0
 0,200,3,6
 1,11,15,195

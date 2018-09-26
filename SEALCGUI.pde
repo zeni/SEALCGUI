@@ -81,7 +81,6 @@ void setup() {
 	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
 	background(bgColor);
-	myText = "";
 	inBuffer = "";
 	textAlign(LEFT, TOP);
 	state = STATE_SELECT;
@@ -98,9 +97,7 @@ void setup() {
 	textLeading(textLead);
 	strokeWeight(2);
 	inTextBoxHeight = 300;
-	command[0] = 0;
-	command[1] = 0;
-	iCommand = 0;
+	delete();
 	firstChar = true;
 	currentValue = -1;
 	selectedMotor = 0;
@@ -160,6 +157,25 @@ void backspace() {
 		}
 		myText = myText.substring(0, myText.length() - 1);
 	}
+}
+
+void delete() {
+	myText = "";
+	command[0] = 0;
+	command[1] = 0;
+	iCommand = 0;
+}
+
+void enter() {
+	command[0] = 0;
+	command[1] = 0;
+	iCommand = 0;
+	myText += '\n';
+	history += myText;
+	sendText();
+	for (int i = 0; i < myText.length(); i++)
+		processCommand(myText.charAt(i));
+	myText = "";
 }
 
 void displayHelp() {
@@ -265,22 +281,11 @@ void processKeys(char k) {
 						backspace();
 						break;
 					case DELETE:
-						myText = "";
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
+						delete();
 						break;
 					case ENTER:
 					case RETURN:
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
-						myText = myText + '\n';
-						history += myText;
-						sendText();
-						for (int i = 0; i < myText.length(); i++)
-							processCommand(myText.charAt(i));
-						myText = "";
+						enter();
 						break;
 					case 'S':
 					case 'R':
@@ -307,10 +312,7 @@ void processKeys(char k) {
 					command[0] = 0;
 					break;
 				case DELETE:
-					myText = "";
-					command[0] = 0;
-					command[1] = 0;
-					iCommand = 0;
+					delete();
 					break;
 				case 'S':
 				case 'R':
@@ -420,21 +422,13 @@ void processKeys(char k) {
 			}
 			break;
 		case 2:
-			if ((k >= 48) && (k < 58)) {
+			if ((k >= 48) && (k < 58))
 				myText += k;
-			} else {
+			else {
 				switch (k) {
 					case ENTER:
 					case RETURN:
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
-						myText = myText + '\n';
-						history += myText;
-						sendText();
-						for (int i = 0; i < myText.length(); i++)
-							processCommand(myText.charAt(i));
-						myText = "";
+						enter();
 						break;
 					case SEPARATOR:
 						myText += k;
@@ -456,10 +450,7 @@ void processKeys(char k) {
 						backspace();
 						break;
 					case DELETE:
-						myText = "";
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
+						delete();
 						break;
 					default:
 						break;
@@ -633,6 +624,13 @@ void processCommand(char a) {
 	}
 }
 
+void writeTitle(String s) {
+	fill(175);
+	textFont(myFont, textSize - 2);
+	text(s, textBoxWidth - textWidth(s), -textLead * .75);
+	textFont(myFont, textSize);
+}
+
 void writeTextBox(color c) {
 	fill(c);
 	noStroke();
@@ -641,17 +639,18 @@ void writeTextBox(color c) {
 	rect(0, 0, textBoxWidth, textLead * 1.5);
 	textAlign(LEFT, CENTER);
 	for (int i = 0; i < myText.length(); i++) {
-		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58)) {
+		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58))
 			fill(textColor);
-		} else if ((myText.charAt(i) >= 65) && (myText.charAt(i) < 91)) {
+		else if ((myText.charAt(i) >= 65) && (myText.charAt(i) < 91))
 			fill(color(255, 0, 0));
-		} else
+		else
 			fill(color(0, 255, 0));
 		int w = int(textWidth(myText.substring(0, i)));
 		text(myText.substring(i, i + 1), offsetText + w, 5, textBoxWidth, textLead);
 	}
-	popMatrix();
 	textAlign(LEFT, TOP);
+	writeTitle("COMMANDS");
+	popMatrix();
 }
 
 void sendText() {
@@ -665,11 +664,12 @@ void readTextBox() {
 	fill(textBoxColor);
 	noStroke();
 	pushMatrix();
-	translate(offsetX, offsetY + 50);
+	translate(offsetX, offsetY + 70);
 	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	inBuffer = scrollText(inBuffer);
-	text(inBuffer, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(inBuffer, offsetText, offsetText);
+	writeTitle("SERIAL MONITOR");
 	popMatrix();
 }
 
@@ -677,23 +677,21 @@ void historyBox() {
 	fill(textBoxColor);
 	noStroke();
 	pushMatrix();
-	translate(offsetX, offsetY + 80 + inTextBoxHeight);
+	translate(offsetX, offsetY + 105 + inTextBoxHeight);
 	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	history = scrollText(history);
-	text(history, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(history, offsetText, offsetText);
+	writeTitle("HISTORY");
 	popMatrix();
 }
 
 String scrollText(String s) {
 	int nLines = 0;
-	for (int i = 0; i < s.length(); i++) {
+	for (int i = 0; i < s.length(); i++)
 		if (s.charAt(i) == '\n') nLines++;
-	}
-	if (nLines * textLead > inTextBoxHeight) {
-		int a = s.indexOf('\n');
-		s = s.substring(a + 1);
-	}
+	if (nLines * textLead > inTextBoxHeight)
+		s = s.substring(s.indexOf('\n') + 1);
 	return s;
 }
 
@@ -702,14 +700,15 @@ void selectPort() {
 	noStroke();
 	pushMatrix();
 	translate(offsetX, offsetY);
-	rect(0, 0, textBoxWidth, inTextBoxHeight);
+	rect(0, 0, textBoxWidth, textLead * 1.5);
 	fill(textColor);
-	String portsListString = "Please select port (<- ->):\n";
-	portsListString += "[" + iPort + "] ";
+	textAlign(LEFT, CENTER);
+	String portsListString = "Port: [" + iPort + "] ";
 	portsListString += portsList[iPort];
 	portsListString += "\n";
-	text(portsListString, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(portsListString, offsetText, offsetText, textBoxWidth, textLead * 1.5);
 	popMatrix();
+	textAlign(LEFT, TOP);
 }
 
 void sendSetup() {
@@ -718,25 +717,32 @@ void sendSetup() {
 	int n = 0;
 	try {
 		while ((line = reader.readLine()) != null) {
-			if (n == 0) {
-				nMotors = line.charAt(0) - 48;
-				motors = new Motor[nMotors];
-			} else {
-				String[] args = line.split(",");
-				switch (int(args[0])) {
-					case 0:
-						motors[n - 1] = new Stepper(int(args[1]), n - 1);
-						break;
-					case 1:
-						motors[n - 1] = new Servo(int(args[2]), int(args[3]), n - 1);
-						break;
-					case 2:
-						motors[n - 1] = new Vibro(n - 1);
-						break;
-				}
-				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0), motorSize);
+			switch (n) {
+				case 0:
+				case 2:
+					break;
+				case 1:
+					nMotors = line.charAt(0) - 48;
+					motors = new Motor[nMotors];
+					myPort.write(line + '\n');
+					break;
+				default:
+					String[] args = line.split(",");
+					switch (int(args[0])) {
+						case 0:
+							motors[n - 3] = new Stepper(int(args[1]), n - 3);
+							break;
+						case 1:
+							motors[n - 3] = new Servo(int(args[2]), int(args[3]), n - 3);
+							break;
+						case 2:
+							motors[n - 3] = new Vibro(n - 3);
+							break;
+					}
+					motors[n - 3].setGraphics(textBoxWidth + 100 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0), motorSize);
+					myPort.write(line + '\n');
+					break;
 			}
-			myPort.write(line + '\n');
 			n++;
 		}
 		reader.close();

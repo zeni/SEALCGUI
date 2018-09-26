@@ -99,7 +99,6 @@ public void setup() {
 	textBoxColor = color(20, 20, 30);
 	textColor = color(230);
 	background(bgColor);
-	myText = "";
 	inBuffer = "";
 	textAlign(LEFT, TOP);
 	state = STATE_SELECT;
@@ -116,9 +115,7 @@ public void setup() {
 	textLeading(textLead);
 	strokeWeight(2);
 	inTextBoxHeight = 300;
-	command[0] = 0;
-	command[1] = 0;
-	iCommand = 0;
+	delete();
 	firstChar = true;
 	currentValue = -1;
 	selectedMotor = 0;
@@ -178,6 +175,25 @@ public void backspace() {
 		}
 		myText = myText.substring(0, myText.length() - 1);
 	}
+}
+
+public void delete() {
+	myText = "";
+	command[0] = 0;
+	command[1] = 0;
+	iCommand = 0;
+}
+
+public void enter() {
+	command[0] = 0;
+	command[1] = 0;
+	iCommand = 0;
+	myText += '\n';
+	history += myText;
+	sendText();
+	for (int i = 0; i < myText.length(); i++)
+		processCommand(myText.charAt(i));
+	myText = "";
 }
 
 public void displayHelp() {
@@ -283,22 +299,11 @@ public void processKeys(char k) {
 						backspace();
 						break;
 					case DELETE:
-						myText = "";
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
+						delete();
 						break;
 					case ENTER:
 					case RETURN:
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
-						myText = myText + '\n';
-						history += myText;
-						sendText();
-						for (int i = 0; i < myText.length(); i++)
-							processCommand(myText.charAt(i));
-						myText = "";
+						enter();
 						break;
 					case 'S':
 					case 'R':
@@ -325,10 +330,7 @@ public void processKeys(char k) {
 					command[0] = 0;
 					break;
 				case DELETE:
-					myText = "";
-					command[0] = 0;
-					command[1] = 0;
-					iCommand = 0;
+					delete();
 					break;
 				case 'S':
 				case 'R':
@@ -438,21 +440,13 @@ public void processKeys(char k) {
 			}
 			break;
 		case 2:
-			if ((k >= 48) && (k < 58)) {
+			if ((k >= 48) && (k < 58))
 				myText += k;
-			} else {
+			else {
 				switch (k) {
 					case ENTER:
 					case RETURN:
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
-						myText = myText + '\n';
-						history += myText;
-						sendText();
-						for (int i = 0; i < myText.length(); i++)
-							processCommand(myText.charAt(i));
-						myText = "";
+						enter();
 						break;
 					case SEPARATOR:
 						myText += k;
@@ -474,10 +468,7 @@ public void processKeys(char k) {
 						backspace();
 						break;
 					case DELETE:
-						myText = "";
-						command[0] = 0;
-						command[1] = 0;
-						iCommand = 0;
+						delete();
 						break;
 					default:
 						break;
@@ -651,6 +642,13 @@ public void processCommand(char a) {
 	}
 }
 
+public void writeTitle(String s) {
+	fill(175);
+	textFont(myFont, textSize - 2);
+	text(s, textBoxWidth - textWidth(s), -textLead * .75f);
+	textFont(myFont, textSize);
+}
+
 public void writeTextBox(int c) {
 	fill(c);
 	noStroke();
@@ -659,17 +657,18 @@ public void writeTextBox(int c) {
 	rect(0, 0, textBoxWidth, textLead * 1.5f);
 	textAlign(LEFT, CENTER);
 	for (int i = 0; i < myText.length(); i++) {
-		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58)) {
+		if ((myText.charAt(i) >= 48) && (myText.charAt(i) < 58))
 			fill(textColor);
-		} else if ((myText.charAt(i) >= 65) && (myText.charAt(i) < 91)) {
+		else if ((myText.charAt(i) >= 65) && (myText.charAt(i) < 91))
 			fill(color(255, 0, 0));
-		} else
+		else
 			fill(color(0, 255, 0));
 		int w = PApplet.parseInt(textWidth(myText.substring(0, i)));
 		text(myText.substring(i, i + 1), offsetText + w, 5, textBoxWidth, textLead);
 	}
-	popMatrix();
 	textAlign(LEFT, TOP);
+	writeTitle("COMMANDS");
+	popMatrix();
 }
 
 public void sendText() {
@@ -683,11 +682,12 @@ public void readTextBox() {
 	fill(textBoxColor);
 	noStroke();
 	pushMatrix();
-	translate(offsetX, offsetY + 50);
+	translate(offsetX, offsetY + 70);
 	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	inBuffer = scrollText(inBuffer);
-	text(inBuffer, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(inBuffer, offsetText, offsetText);
+	writeTitle("SERIAL MONITOR");
 	popMatrix();
 }
 
@@ -695,23 +695,21 @@ public void historyBox() {
 	fill(textBoxColor);
 	noStroke();
 	pushMatrix();
-	translate(offsetX, offsetY + 80 + inTextBoxHeight);
+	translate(offsetX, offsetY + 105 + inTextBoxHeight);
 	rect(0, 0, textBoxWidth, inTextBoxHeight);
 	fill(textColor);
 	history = scrollText(history);
-	text(history, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(history, offsetText, offsetText);
+	writeTitle("HISTORY");
 	popMatrix();
 }
 
 public String scrollText(String s) {
 	int nLines = 0;
-	for (int i = 0; i < s.length(); i++) {
+	for (int i = 0; i < s.length(); i++)
 		if (s.charAt(i) == '\n') nLines++;
-	}
-	if (nLines * textLead > inTextBoxHeight) {
-		int a = s.indexOf('\n');
-		s = s.substring(a + 1);
-	}
+	if (nLines * textLead > inTextBoxHeight)
+		s = s.substring(s.indexOf('\n') + 1);
 	return s;
 }
 
@@ -720,14 +718,15 @@ public void selectPort() {
 	noStroke();
 	pushMatrix();
 	translate(offsetX, offsetY);
-	rect(0, 0, textBoxWidth, inTextBoxHeight);
+	rect(0, 0, textBoxWidth, textLead * 1.5f);
 	fill(textColor);
-	String portsListString = "Please select port (<- ->):\n";
-	portsListString += "[" + iPort + "] ";
+	textAlign(LEFT, CENTER);
+	String portsListString = "Port: [" + iPort + "] ";
 	portsListString += portsList[iPort];
 	portsListString += "\n";
-	text(portsListString, offsetText, offsetText, textBoxWidth, inTextBoxHeight);
+	text(portsListString, offsetText, offsetText, textBoxWidth, textLead * 1.5f);
 	popMatrix();
+	textAlign(LEFT, TOP);
 }
 
 public void sendSetup() {
@@ -736,25 +735,32 @@ public void sendSetup() {
 	int n = 0;
 	try {
 		while ((line = reader.readLine()) != null) {
-			if (n == 0) {
-				nMotors = line.charAt(0) - 48;
-				motors = new Motor[nMotors];
-			} else {
-				String[] args = line.split(",");
-				switch (PApplet.parseInt(args[0])) {
-					case 0:
-						motors[n - 1] = new Stepper(PApplet.parseInt(args[1]), n - 1);
-						break;
-					case 1:
-						motors[n - 1] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]), n - 1);
-						break;
-					case 2:
-						motors[n - 1] = new Vibro(n - 1);
-						break;
-				}
-				motors[n - 1].setGraphics(textBoxWidth + 100 + ((n - 1) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 1) / 4.0f), motorSize);
+			switch (n) {
+				case 0:
+				case 2:
+					break;
+				case 1:
+					nMotors = line.charAt(0) - 48;
+					motors = new Motor[nMotors];
+					myPort.write(line + '\n');
+					break;
+				default:
+					String[] args = line.split(",");
+					switch (PApplet.parseInt(args[0])) {
+						case 0:
+							motors[n - 3] = new Stepper(PApplet.parseInt(args[1]), n - 3);
+							break;
+						case 1:
+							motors[n - 3] = new Servo(PApplet.parseInt(args[2]), PApplet.parseInt(args[3]), n - 3);
+							break;
+						case 2:
+							motors[n - 3] = new Vibro(n - 3);
+							break;
+					}
+					motors[n - 3].setGraphics(textBoxWidth + 100 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0f), motorSize);
+					myPort.write(line + '\n');
+					break;
 			}
-			myPort.write(line + '\n');
 			n++;
 		}
 		reader.close();
@@ -775,7 +781,6 @@ interface Motor {
     public void action();
     public String getType();
     public void fillQ(int m, int v);
-    public void deQ();
 }
 class Servo implements Motor {
     int angleMin, angleMax;
@@ -830,7 +835,7 @@ class Servo implements Motor {
         }
         sizeQ = 0;
         speedRPM = 12;
-        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+        speed = floor(60000.0f / (speedRPM * nSteps));
         indexSeq = 0;
         lengthSeq = 0;
         pause = 1000;
@@ -907,7 +912,7 @@ class Servo implements Motor {
 
     public void SS(int v) {
         speedRPM = (v > 60000.0f / nSteps) ? floor(60000.0f / nSteps) : v;
-        speed = (speedRPM > 0) ? (floor(60.0f / (speedRPM * nSteps) * 1000)) : 0;
+        speed = (speedRPM > 0) ? (floor(60000.0f / (speedRPM * nSteps))) : 0;
     }
 
     public String getType() {
@@ -941,7 +946,7 @@ class Servo implements Motor {
     public void setRA(int v) {
         v = (v < angleMin) ? angleMin : ((v > angleMax) ? angleMax : v);
         if (v >= angle) {
-            v = v - angle;
+            v -= angle;
             currentDir = 0;
         } else {
             v = angle - v;
@@ -1431,21 +1436,11 @@ class Stepper implements Motor {
     }
 
     public void absoluteStepsDir() {
+        currentSteps += inc;
         if (currentDir > 0)
             absoluteSteps -= inc;
         else absoluteSteps += inc;
         absoluteSteps %= nSteps;
-    }
-
-    // move one step
-    public void moveStep() {
-        if (currentSteps >= steps) {
-            ST();
-        } else {
-            currentSteps += inc;
-            absoluteStepsDir();
-            timeMS = millis();
-        }
     }
 
     public void action() {
@@ -1497,17 +1492,15 @@ class Stepper implements Motor {
             if ((millis() - timeMS) >= speed) {
                 int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
                 if (turns == 0) {
-                    currentSteps += inc;
                     absoluteStepsDir();
                     if (currentSteps >= nSteps * iturns) {
-                        deQ();
                         currentSteps %= nSteps;
+                        deQ();
                     }
                 } else {
                     if (currentSteps >= steps)
                         ST();
                     else {
-                        currentSteps += inc;
                         absoluteStepsDir();
                         if (currentSteps >= nSteps * iturns)
                             deQ();
@@ -1534,11 +1527,10 @@ class Stepper implements Motor {
                     if (currentSteps >= steps) {
                         isPaused = true;
                         currentSteps = 0;
-                        absoluteSteps = 0;
+                        absoluteSteps = absoluteStepsIdle;
                         deQ();
                     } else {
                         int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
-                        currentSteps += inc;
                         absoluteStepsDir();
                         if (currentSteps >= nSteps * iturns)
                             deQ();
@@ -1559,11 +1551,9 @@ class Stepper implements Motor {
                     ST();
                     absoluteStepsIdle = steps;
                     absoluteSteps = absoluteStepsIdle;
-                } else {
-                    currentSteps += inc;
+                } else
                     absoluteStepsDir();
-                    timeMS = millis();
-                }
+                timeMS = millis();
             }
         } else {
             ST();
@@ -1580,11 +1570,10 @@ class Stepper implements Motor {
                     currentSteps = 0;
                 } else {
                     realSteps += inc;
-                    currentSteps += inc;
                     absoluteStepsDir();
                     if (realSteps >= nSteps) {
-                        deQ();
                         realSteps %= nSteps;
+                        deQ();
                     }
                 }
                 timeMS = millis();
@@ -1600,16 +1589,14 @@ class Stepper implements Motor {
                 isPaused = false;
                 ST();
             }
-        } else {
+        } else
             isPaused = true;
-        }
     }
 
     // continuous hammer movement with pattern of angles
     public void SQ() {
         if (speed > 0) {
             if (newBeat) {
-                deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
                 switch (currentSeq[a]) {
@@ -1621,6 +1608,7 @@ class Stepper implements Motor {
                         currentDir = dir;
                         break;
                 }
+                deQ();
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
@@ -1633,9 +1621,10 @@ class Stepper implements Motor {
                         newBeat = true;
                     else currentDir = 1 - currentDir;
                 } else {
-                    currentSteps += inc;
                     if (seq[a] > 0)
                         absoluteStepsDir();
+                    else
+                        currentSteps += inc;
                 }
                 timeMS = millis();
             }
@@ -1649,16 +1638,6 @@ class Stepper implements Motor {
             case MODE_IDLE:
                 break;
             case MODE_ST:
-                /*switch (mode) {
-                    case MODE_RO:
-                    case MODE_RP:
-                    case MODE_RW:
-                        absoluteSteps = 0;
-                        break;
-                    case MODE_RA:
-                        absoluteSteps = steps;
-                        break;
-                }*/
                 absoluteSteps = absoluteStepsIdle;
                 mode = modesQ[0];
                 break;

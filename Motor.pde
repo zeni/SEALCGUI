@@ -10,5 +10,4 @@ interface Motor {
     void action();
     String getType();
     void fillQ(int m, int v);
-    void deQ();
 }
