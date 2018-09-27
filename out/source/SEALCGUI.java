@@ -137,16 +137,13 @@ public void draw() {
 			break;
 		case STATE_CONNECT:
 			text("Connecting to " + myPortName + " ...", 20, 20);
-			while (myPort.available() > 0) {
+			while (myPort.available() > 0)
 				inBuffer += myPort.readString();
-				println(inBuffer);
-			}
 			if (inBuffer.length() > 0) {
-				//if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
+				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
 					state = STATE_RUNNING;
-				//} else
-				//	state = STATE_SELECT;
+				}
 			}
 			break;
 		case STATE_RUNNING:
@@ -174,6 +171,7 @@ public void backspace() {
 				command[0] = l2;
 				command[1] = 0;
 			}
+			if (l1 == SEPARATOR) iCommand = 2;
 		}
 		myText = myText.substring(0, myText.length() - 1);
 	}
@@ -184,7 +182,7 @@ public void delete() {
 	command[0] = 0;
 	command[1] = 0;
 	iCommand = 0;
-	iCommandsList=0;
+	iCommandsList = 0;
 }
 
 public void enter() {
@@ -197,7 +195,7 @@ public void enter() {
 	for (int i = 0; i < myText.length(); i++)
 		processCommand(myText.charAt(i));
 	myText = "";
-	iCommandsList=0;
+	iCommandsList = 0;
 }
 
 public void displayHelp() {
@@ -290,6 +288,16 @@ public void displayHelp() {
 	textFont(myFont, textSize);
 }
 
+public void addCommandList(int c) {
+	if (iCommandsList >= MAX_QUEUE) {
+		iCommandsList--;
+		for (int i = 0; i < iCommandsList; i++)
+			commandsList[i] = commandsList[i + 1];
+	}
+	commandsList[iCommandsList++] = c;
+	myText += command[1];
+}
+
 public void processKeys(char k) {
 	if ((k >= 97) && (k < 123))
 		k -= 32;
@@ -359,20 +367,16 @@ public void processKeys(char k) {
 				case 'S':
 					switch (command[1]) {
 						case 'S':
-							commandsList[iCommandsList++] = COMMAND_SS;
-							myText += command[1];
+							addCommandList(COMMAND_SS);
 							break;
 						case 'T':
-							commandsList[iCommandsList++] = COMMAND_ST;
-							myText += command[1];
+							addCommandList(COMMAND_ST);
 							break;
 						case 'D':
-							commandsList[iCommandsList++] = COMMAND_SD;
-							myText += command[1];
+							addCommandList(COMMAND_SD);
 							break;
 						case 'Q':
-							commandsList[iCommandsList++] = COMMAND_SQ;
-							myText += command[1];
+							addCommandList(COMMAND_SQ);
 							break;
 						default:
 							iCommand = 1;
@@ -383,24 +387,19 @@ public void processKeys(char k) {
 				case 'R':
 					switch (command[1]) {
 						case 'O':
-							commandsList[iCommandsList++] = COMMAND_RO;
-							myText += command[1];
+							addCommandList(COMMAND_RO);
 							break;
 						case 'A':
-							commandsList[iCommandsList++] = COMMAND_RA;
-							myText += command[1];
+							addCommandList(COMMAND_RA);
 							break;
 						case 'P':
-							commandsList[iCommandsList++] = COMMAND_RP;
-							myText += command[1];
+							addCommandList(COMMAND_RP);
 							break;
 						case 'W':
-							commandsList[iCommandsList++] = COMMAND_RW;
-							myText += command[1];
+							addCommandList(COMMAND_RW);
 							break;
 						case 'R':
-							commandsList[iCommandsList++] = COMMAND_RR;
-							myText += command[1];
+							addCommandList(COMMAND_RR);
 							break;
 						default:
 							iCommand = 1;
@@ -410,8 +409,7 @@ public void processKeys(char k) {
 					break;
 				case 'W':
 					if (command[1] == 'A') {
-						commandsList[iCommandsList++] = COMMAND_WA;
-						myText += command[1];
+						addCommandList(COMMAND_WA);
 					} else {
 						iCommand = 1;
 						command[1] = 0;
@@ -420,20 +418,16 @@ public void processKeys(char k) {
 				case 'G':
 					switch (command[1]) {
 						case 'S':
-							commandsList[iCommandsList++] = COMMAND_GS;
-							myText += command[1];
+							addCommandList(COMMAND_GS);
 							break;
 						case 'M':
-							commandsList[iCommandsList++] = COMMAND_GM;
-							myText += command[1];
+							addCommandList(COMMAND_GM);
 							break;
 						case 'I':
-							commandsList[iCommandsList++] = COMMAND_GI;
-							myText += command[1];
+							addCommandList(COMMAND_GI);
 							break;
 						case 'D':
-							commandsList[iCommandsList++] = COMMAND_GD;
-							myText += command[1];
+							addCommandList(COMMAND_GD);
 							break;
 						default:
 							iCommand = 1;
@@ -980,7 +974,7 @@ class Servo implements Motor {
     }
 
     public void setSQ(int v) {
-        currentDir = dir;
+        v = (v <= 0) ? 0 : v;
         newBeat = true;
         if (angleSeq == 0) {
             angleSeq = v;
@@ -994,7 +988,6 @@ class Servo implements Motor {
         currentLengthSeq = lengthSeq;
         for (int i = 0; i < currentLengthSeq; i++)
             currentSeq[i] = seq[i];
-        indexSeq = 0;
         currentIndexSeq = 0;
         steps = angleSeq;
         angleSeq = 0;
@@ -1083,17 +1076,25 @@ class Servo implements Motor {
     public void SQ() {
         if (speed > 0) {
             if (newBeat) {
-                deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
-                currentDir = (currentSeq[a] < 2) ? dir : (1 - dir);
+                switch (currentSeq[a]) {
+                    case 2:
+                        currentDir = 1 - dir;
+                        break;
+                    case 1:
+                    case 0:
+                        currentDir = dir;
+                        break;
+                }
+                deQ();
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
                 if (currentSteps >= steps) {
-                    currentIndexSeq++;
                     currentSteps = 0;
-                    indexSeq++;
+                    currentIndexSeq++;
+                    //indexSeq++;
                     if (a >= currentLengthSeq)
                         currentIndexSeq = 0;
                     if ((currentIndexSeq % 2) == 0)
@@ -1122,10 +1123,15 @@ class Servo implements Motor {
     }
 
     public void fillQ(int m, int v) {
+        if (sizeQ >= MAX_QUEUE) {
+            sizeQ--;
+            for (int i = 0; i < sizeQ; i++) {
+                modesQ[i] = modesQ[i + 1];
+                valuesQ[i] = valuesQ[i + 1];
+            }
+        }
         modesQ[sizeQ] = m;
-        valuesQ[sizeQ] = v;
-        sizeQ++;
-        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
+        valuesQ[sizeQ++] = v;
     }
 
     public void setSelected(boolean s) {
@@ -1502,10 +1508,10 @@ class Stepper implements Motor {
                         deQ();
                     }
                 } else {
+                    absoluteStepsDir();
                     if (currentSteps >= steps)
                         ST();
                     else {
-                        absoluteStepsDir();
                         if (currentSteps >= nSteps * iturns)
                             deQ();
                     }
@@ -1646,6 +1652,7 @@ class Stepper implements Motor {
                 mode = modesQ[0];
                 break;
             case MODE_RO:
+                println(sizeQ);
                 setRO(valuesQ[0]);
                 break;
             case MODE_RP:
@@ -1669,6 +1676,7 @@ class Stepper implements Motor {
                 break;
         }
         if (modesQ[0] != MODE_IDLE) {
+            println("deQ");
             for (int i = 1; i < MAX_QUEUE; i++) {
                 modesQ[i - 1] = modesQ[i];
                 valuesQ[i - 1] = valuesQ[i];
@@ -1681,12 +1689,16 @@ class Stepper implements Motor {
     }
 
     public void fillQ(int m, int v) {
+        if (sizeQ >= MAX_QUEUE) {
+            sizeQ--;
+            for (int i = 0; i < sizeQ; i++) {
+                modesQ[i] = modesQ[i + 1];
+                valuesQ[i] = valuesQ[i + 1];
+            }
+        }
         modesQ[sizeQ] = m;
-        valuesQ[sizeQ] = v;
-        sizeQ++;
-        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
+        valuesQ[sizeQ++] = v;
     }
-
 }
 class Vibro implements Motor {
     int duration;
@@ -1956,10 +1968,15 @@ class Vibro implements Motor {
     }
 
     public void fillQ(int m, int v) {
+        if (sizeQ >= MAX_QUEUE) {
+            sizeQ--;
+            for (int i = 0; i < sizeQ; i++) {
+                modesQ[i] = modesQ[i + 1];
+                valuesQ[i] = valuesQ[i + 1];
+            }
+        }
         modesQ[sizeQ] = m;
-        valuesQ[sizeQ] = v;
-        sizeQ++;
-        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
+        valuesQ[sizeQ++] = v;
     }
 
     public void deQ() {

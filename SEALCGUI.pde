@@ -119,16 +119,13 @@ void draw() {
 			break;
 		case STATE_CONNECT:
 			text("Connecting to " + myPortName + " ...", 20, 20);
-			while (myPort.available() > 0) {
+			while (myPort.available() > 0)
 				inBuffer += myPort.readString();
-				println(inBuffer);
-			}
 			if (inBuffer.length() > 0) {
-				//if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
+				if (inBuffer.charAt(inBuffer.length() - 1) == '<') {
 					sendSetup();
 					state = STATE_RUNNING;
-				//} else
-				//	state = STATE_SELECT;
+				}
 			}
 			break;
 		case STATE_RUNNING:
@@ -156,6 +153,7 @@ void backspace() {
 				command[0] = l2;
 				command[1] = 0;
 			}
+			if (l1 == SEPARATOR) iCommand = 2;
 		}
 		myText = myText.substring(0, myText.length() - 1);
 	}
@@ -166,7 +164,7 @@ void delete() {
 	command[0] = 0;
 	command[1] = 0;
 	iCommand = 0;
-	iCommandsList=0;
+	iCommandsList = 0;
 }
 
 void enter() {
@@ -179,7 +177,7 @@ void enter() {
 	for (int i = 0; i < myText.length(); i++)
 		processCommand(myText.charAt(i));
 	myText = "";
-	iCommandsList=0;
+	iCommandsList = 0;
 }
 
 void displayHelp() {
@@ -272,6 +270,16 @@ void displayHelp() {
 	textFont(myFont, textSize);
 }
 
+void addCommandList(int c) {
+	if (iCommandsList >= MAX_QUEUE) {
+		iCommandsList--;
+		for (int i = 0; i < iCommandsList; i++)
+			commandsList[i] = commandsList[i + 1];
+	}
+	commandsList[iCommandsList++] = c;
+	myText += command[1];
+}
+
 void processKeys(char k) {
 	if ((k >= 97) && (k < 123))
 		k -= 32;
@@ -341,20 +349,16 @@ void processKeys(char k) {
 				case 'S':
 					switch (command[1]) {
 						case 'S':
-							commandsList[iCommandsList++] = COMMAND_SS;
-							myText += command[1];
+							addCommandList(COMMAND_SS);
 							break;
 						case 'T':
-							commandsList[iCommandsList++] = COMMAND_ST;
-							myText += command[1];
+							addCommandList(COMMAND_ST);
 							break;
 						case 'D':
-							commandsList[iCommandsList++] = COMMAND_SD;
-							myText += command[1];
+							addCommandList(COMMAND_SD);
 							break;
 						case 'Q':
-							commandsList[iCommandsList++] = COMMAND_SQ;
-							myText += command[1];
+							addCommandList(COMMAND_SQ);
 							break;
 						default:
 							iCommand = 1;
@@ -365,24 +369,19 @@ void processKeys(char k) {
 				case 'R':
 					switch (command[1]) {
 						case 'O':
-							commandsList[iCommandsList++] = COMMAND_RO;
-							myText += command[1];
+							addCommandList(COMMAND_RO);
 							break;
 						case 'A':
-							commandsList[iCommandsList++] = COMMAND_RA;
-							myText += command[1];
+							addCommandList(COMMAND_RA);
 							break;
 						case 'P':
-							commandsList[iCommandsList++] = COMMAND_RP;
-							myText += command[1];
+							addCommandList(COMMAND_RP);
 							break;
 						case 'W':
-							commandsList[iCommandsList++] = COMMAND_RW;
-							myText += command[1];
+							addCommandList(COMMAND_RW);
 							break;
 						case 'R':
-							commandsList[iCommandsList++] = COMMAND_RR;
-							myText += command[1];
+							addCommandList(COMMAND_RR);
 							break;
 						default:
 							iCommand = 1;
@@ -392,8 +391,7 @@ void processKeys(char k) {
 					break;
 				case 'W':
 					if (command[1] == 'A') {
-						commandsList[iCommandsList++] = COMMAND_WA;
-						myText += command[1];
+						addCommandList(COMMAND_WA);
 					} else {
 						iCommand = 1;
 						command[1] = 0;
@@ -402,20 +400,16 @@ void processKeys(char k) {
 				case 'G':
 					switch (command[1]) {
 						case 'S':
-							commandsList[iCommandsList++] = COMMAND_GS;
-							myText += command[1];
+							addCommandList(COMMAND_GS);
 							break;
 						case 'M':
-							commandsList[iCommandsList++] = COMMAND_GM;
-							myText += command[1];
+							addCommandList(COMMAND_GM);
 							break;
 						case 'I':
-							commandsList[iCommandsList++] = COMMAND_GI;
-							myText += command[1];
+							addCommandList(COMMAND_GI);
 							break;
 						case 'D':
-							commandsList[iCommandsList++] = COMMAND_GD;
-							myText += command[1];
+							addCommandList(COMMAND_GD);
 							break;
 						default:
 							iCommand = 1;

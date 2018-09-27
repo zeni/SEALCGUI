@@ -192,7 +192,7 @@ class Servo implements Motor {
     }
 
     void setSQ(int v) {
-        currentDir = dir;
+        v = (v <= 0) ? 0 : v;
         newBeat = true;
         if (angleSeq == 0) {
             angleSeq = v;
@@ -206,7 +206,6 @@ class Servo implements Motor {
         currentLengthSeq = lengthSeq;
         for (int i = 0; i < currentLengthSeq; i++)
             currentSeq[i] = seq[i];
-        indexSeq = 0;
         currentIndexSeq = 0;
         steps = angleSeq;
         angleSeq = 0;
@@ -295,17 +294,25 @@ class Servo implements Motor {
     void SQ() {
         if (speed > 0) {
             if (newBeat) {
-                deQ();
                 newBeat = false;
                 int a = floor(currentIndexSeq / 2);
-                currentDir = (currentSeq[a] < 2) ? dir : (1 - dir);
+                switch (currentSeq[a]) {
+                    case 2:
+                        currentDir = 1 - dir;
+                        break;
+                    case 1:
+                    case 0:
+                        currentDir = dir;
+                        break;
+                }
+                deQ();
             }
             if ((millis() - timeMS) > speed) {
                 int a = floor(currentIndexSeq / 2);
                 if (currentSteps >= steps) {
-                    currentIndexSeq++;
                     currentSteps = 0;
-                    indexSeq++;
+                    currentIndexSeq++;
+                    //indexSeq++;
                     if (a >= currentLengthSeq)
                         currentIndexSeq = 0;
                     if ((currentIndexSeq % 2) == 0)
@@ -334,10 +341,15 @@ class Servo implements Motor {
     }
 
     void fillQ(int m, int v) {
+        if (sizeQ >= MAX_QUEUE) {
+            sizeQ--;
+            for (int i = 0; i < sizeQ; i++) {
+                modesQ[i] = modesQ[i + 1];
+                valuesQ[i] = valuesQ[i + 1];
+            }
+        }
         modesQ[sizeQ] = m;
-        valuesQ[sizeQ] = v;
-        sizeQ++;
-        sizeQ = (sizeQ > MAX_QUEUE) ? MAX_QUEUE : sizeQ;
+        valuesQ[sizeQ++] = v;
     }
 
     void setSelected(boolean s) {
