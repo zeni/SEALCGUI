@@ -54,7 +54,7 @@ class Vibro implements Motor {
         radius = r;
     }
 
-    void display(SecondApplet sa) {
+    void display(SecondApplet sea) {
         sa.noFill();
         if (selected)
             sa.stroke(255, 0, 0);
