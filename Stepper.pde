@@ -248,11 +248,14 @@ class Stepper implements Motor {
     }
 
     void absoluteStepsDir() {
-        currentSteps += inc;
-        if (currentDir > 0)
-            absoluteSteps -= inc;
-        else absoluteSteps += inc;
-        absoluteSteps %= nSteps;
+        println(absoluteStepsIdle);
+        if (mode != MODE_IDLE) {
+            currentSteps += inc;
+            if (currentDir > 0)
+                absoluteSteps -= inc;
+            else absoluteSteps += inc;
+            absoluteSteps %= nSteps;
+        }
     }
 
     void action() {
@@ -267,12 +270,14 @@ class Stepper implements Motor {
                 SD();
                 break;
             case MODE_RO:
+                println(absoluteSteps);
                 RO();
                 break;
             case MODE_RP:
                 RP();
                 break;
             case MODE_RA:
+                println("ra: " + absoluteSteps);
                 RA();
                 break;
             case MODE_RW:
@@ -304,13 +309,11 @@ class Stepper implements Motor {
             if ((millis() - timeMS) >= speed) {
                 int iturns = floor(float(currentSteps) / nSteps) + 1;
                 if (turns == 0) {
-                    absoluteStepsDir();
                     if (currentSteps >= nSteps * iturns) {
                         currentSteps %= nSteps;
                         deQ();
                     }
                 } else {
-                    absoluteStepsDir();
                     if (currentSteps >= steps)
                         ST();
                     else {
@@ -319,6 +322,7 @@ class Stepper implements Motor {
                     }
 
                 }
+                absoluteStepsDir();
                 timeMS = millis();
             }
         } else {
@@ -343,10 +347,10 @@ class Stepper implements Motor {
                         deQ();
                     } else {
                         int iturns = floor(float(currentSteps) / nSteps) + 1;
-                        absoluteStepsDir();
                         if (currentSteps >= nSteps * iturns)
                             deQ();
                     }
+                    absoluteStepsDir();
                     timeMS = millis();
                 }
             }
@@ -360,11 +364,14 @@ class Stepper implements Motor {
         if (speed > 0) {
             if ((millis() - timeMS) > speed) {
                 if (currentSteps >= steps) {
+                    if (currentDir == 0)
+                        absoluteStepsIdle += steps;
+                    else
+                        absoluteStepsIdle -= steps;
+                    absoluteStepsIdle %= nSteps;
                     ST();
-                    absoluteStepsIdle = steps;
-                    absoluteSteps = absoluteStepsIdle;
-                } else
-                    absoluteStepsDir();
+                }
+                absoluteStepsDir();
                 timeMS = millis();
             }
         } else {
@@ -382,12 +389,12 @@ class Stepper implements Motor {
                     currentSteps = 0;
                 } else {
                     realSteps += inc;
-                    absoluteStepsDir();
                     if (realSteps >= nSteps) {
                         realSteps %= nSteps;
                         deQ();
                     }
                 }
+                absoluteStepsDir();
                 timeMS = millis();
             }
         } else {
@@ -446,11 +453,11 @@ class Stepper implements Motor {
     }
 
     void deQ() {
+        absoluteSteps = absoluteStepsIdle;
         switch (modesQ[0]) {
             case MODE_IDLE:
                 break;
             case MODE_ST:
-                absoluteSteps = absoluteStepsIdle;
                 mode = modesQ[0];
                 break;
             case MODE_RO:
