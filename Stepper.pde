@@ -248,7 +248,6 @@ class Stepper implements Motor {
     }
 
     void absoluteStepsDir() {
-        println(absoluteStepsIdle);
         if (mode != MODE_IDLE) {
             currentSteps += inc;
             if (currentDir > 0)
@@ -270,14 +269,12 @@ class Stepper implements Motor {
                 SD();
                 break;
             case MODE_RO:
-                println(absoluteSteps);
                 RO();
                 break;
             case MODE_RP:
                 RP();
                 break;
             case MODE_RA:
-                println("ra: " + absoluteSteps);
                 RA();
                 break;
             case MODE_RW:
