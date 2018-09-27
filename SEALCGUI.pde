@@ -744,7 +744,7 @@ void sendSetup() {
 							motors[n - 3] = new Vibro(n - 3);
 							break;
 					}
-					motors[n - 3].setGraphics(textBoxWidth + 100 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0), motorSize);
+					motors[n - 3].setGraphics(motorSize + 50 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0), motorSize);
 					myPort.write(line + '\n');
 					break;
 			}
@@ -759,8 +759,6 @@ void sendSetup() {
 
 class SecondApplet extends PApplet {
 
-	Motor m;
-
 	SecondApplet() {
 		super();
 		PApplet.runSketch(new String[] {
@@ -774,11 +772,15 @@ class SecondApplet extends PApplet {
 
 	public void setup() {
 		frameRate(1000);
-		//motors[0].display();
+		textFont(myFont, textSize);
+		textLeading(textLead);
+		strokeWeight(2);
+		textAlign(LEFT, TOP);
 	}
 
 	public void draw() {
 		background(bgColor);
-		motors[0].display(this);
+		for (int i = 0; i < nMotors; i++)
+			motors[i].display();
 	}
 }

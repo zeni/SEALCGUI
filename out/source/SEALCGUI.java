@@ -762,7 +762,7 @@ public void sendSetup() {
 							motors[n - 3] = new Vibro(n - 3);
 							break;
 					}
-					motors[n - 3].setGraphics(textBoxWidth + 100 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0f), motorSize);
+					motors[n - 3].setGraphics(motorSize + offsetX + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0f), motorSize);
 					myPort.write(line + '\n');
 					break;
 			}
@@ -777,8 +777,6 @@ public void sendSetup() {
 
 class SecondApplet extends PApplet {
 
-	Motor m;
-
 	SecondApplet() {
 		super();
 		PApplet.runSketch(new String[] {
@@ -792,19 +790,23 @@ class SecondApplet extends PApplet {
 
 	public void setup() {
 		frameRate(1000);
-		//motors[0].display();
+		textFont(myFont, textSize);
+		textLeading(textLead);
+		strokeWeight(2);
+		textAlign(LEFT, TOP);
 	}
 
 	public void draw() {
 		background(bgColor);
-		motors[0].display(this);
+		for (int i = 0; i < nMotors; i++)
+			motors[i].display();
 	}
 }
 interface Motor {
     public void setSelected(boolean s);
     public void columnSQ(int v);
     public void setGraphics(int x, int y, int r);
-    public void display(SecondApplet sa);
+    public void display();
     public void SS(int v);
     public void initSQ();
     public void columnRP(int v);
@@ -882,24 +884,24 @@ class Servo implements Motor {
         radius = r;
     }
 
-    public void display(SecondApplet sa) {
-        noFill();
+    public void display() {
+        sa.noFill();
         if (selected)
-            stroke(255, 0, 0);
-        else stroke(255);
-        pushMatrix();
-        translate(xPos, yPos);
-        rotateZ(radians(angle));
-        ellipse(0, 0, 2 * radius, 2 * radius);
-        line(0, -radius, 0, radius);
-        triangle(0, -radius - 10, -5, -radius, 5, -radius);
-        popMatrix();
-        pushMatrix();
-        translate(xPos - radius, yPos + 2 * radius);
+            sa.stroke(255, 0, 0);
+        else sa.stroke(255);
+        sa.pushMatrix();
+        sa.translate(xPos, yPos);
+        sa.rotateZ(radians(angle));
+        sa.ellipse(0, 0, 2 * radius, 2 * radius);
+        sa.line(0, -radius, 0, radius);
+        sa.triangle(0, -radius - 10, -5, -radius, 5, -radius);
+        sa.popMatrix();
+        sa.pushMatrix();
+        sa.translate(xPos - radius, yPos + 2 * radius);
         if (selected)
-            fill(255, 0, 0);
+            sa.fill(255, 0, 0);
         else
-            fill(255);
+            sa.fill(255);
         String s = id + getType() + "\n";
         s += "Speed: " + speedRPM + "RPM\n";
         s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
@@ -937,8 +939,8 @@ class Servo implements Motor {
                 break;
         }
         s += "\nAngle: " + angle;
-        text(s, 0, 0);
-        popMatrix();
+        sa.text(s, 0, 0);
+        sa.popMatrix();
     }
 
     public void SS(int v) {
@@ -1292,26 +1294,26 @@ class Stepper implements Motor {
         radius = r;
     }
 
-    public void display(SecondApplet sa) {
-        noFill();
+    public void display() {
+        sa.noFill();
         if (selected)
-            stroke(255, 0, 0);
+            sa.stroke(255, 0, 0);
         else
-            stroke(255);
-        pushMatrix();
-        translate(xPos, yPos);
-        rotateZ(TWO_PI * absoluteSteps / nSteps);
-        ellipse(0, 0, 2 * radius, 2 * radius);
-        line(0, -radius, 0, radius);
-        line(0 - radius, 0, radius, 0);
-        triangle(0, -radius - 10, -5, -radius, 5, -radius);
-        popMatrix();
-        pushMatrix();
-        translate(xPos - radius, yPos + 2 * radius);
+            sa.stroke(255);
+        sa.pushMatrix();
+        sa.translate(xPos, yPos);
+        sa.rotateZ(TWO_PI * absoluteSteps / nSteps);
+        sa.ellipse(0, 0, 2 * radius, 2 * radius);
+        sa.line(0, -radius, 0, radius);
+        sa.line(0 - radius, 0, radius, 0);
+        sa.triangle(0, -radius - 10, -5, -radius, 5, -radius);
+        sa.popMatrix();
+        sa.pushMatrix();
+        sa.translate(xPos - radius, yPos + 2 * radius);
         if (selected)
-            fill(255, 0, 0);
+            sa.fill(255, 0, 0);
         else
-            fill(255);
+            sa.fill(255);
         String s = id + getType() + "\n";
         s += "Speed: " + speedRPM + "RPM\n";
         s += "Dir: " + ((dir > 0) ? "CCW" : "CW") + "\n";
@@ -1349,8 +1351,8 @@ class Stepper implements Motor {
                 break;
         }
         s += "\nAngle: " + absoluteSteps * 360.0f / nSteps;
-        text(s, 0, 0);
-        popMatrix();
+        sa.text(s, 0, 0);
+        sa.popMatrix();
     }
 
     public String getType() {
@@ -1771,7 +1773,7 @@ class Vibro implements Motor {
         radius = r;
     }
 
-    public void display(SecondApplet sea) {
+    public void display() {
         sa.noFill();
         if (selected)
             sa.stroke(255, 0, 0);
