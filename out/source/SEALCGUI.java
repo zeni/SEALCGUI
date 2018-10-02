@@ -760,7 +760,7 @@ public void sendSetup() {
 							motors[n - 3] = new Vibro(n - 3);
 							break;
 					}
-					motors[n - 3].setGraphics(motorSize + offsetX + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0f), motorSize);
+					motors[n - 3].setGraphics(motorSize + 50 + ((n - 3) % 4) * 5 * motorSize, motorSize * 2 + motorSize * 8 * floor((n - 3) / 4.0f), motorSize);
 					myPort.write(line + '\n');
 					break;
 			}
@@ -1479,7 +1479,6 @@ class Stepper implements Motor {
     }
 
     public void absoluteStepsDir() {
-        println(absoluteStepsIdle);
         if (mode != MODE_IDLE) {
             currentSteps += inc;
             if (currentDir > 0)
@@ -1501,14 +1500,12 @@ class Stepper implements Motor {
                 SD();
                 break;
             case MODE_RO:
-                println(absoluteSteps);
                 RO();
                 break;
             case MODE_RP:
                 RP();
                 break;
             case MODE_RA:
-                println("ra: " + absoluteSteps);
                 RA();
                 break;
             case MODE_RW:
