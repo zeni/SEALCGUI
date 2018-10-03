@@ -19,6 +19,7 @@ color bgColor, textColor;
 int textSize, textLead;
 Input[] inputs;
 int selectedInput;
+int mouseX0, mouseY0;
 PFont myFont;
 
 void setup() {
@@ -49,12 +50,14 @@ void draw() {
 
 void keyPressed() {}
 
-void mouseReleased() {
+void mousePressed() {
 	if (mouseButton == LEFT) {
+		mouseY0 = mouseY;
+		mouseX0 = mouseX;
 		int s = -1;
 		int i = 0;
 		while (s < 0) {
-			s = inputs[i++].checkSelected(mouseX, mouseY);
+			s = inputs[i++].checkSelected(mouseX0, mouseY0);
 			if (s >= 0) {
 				if (s != selectedInput) {
 					inputs[s].setSelected(true);
@@ -65,5 +68,26 @@ void mouseReleased() {
 				if (i == N_INPUTS) s = 0;
 			}
 		}
+	}
+}
+
+void mouseReleased() {
+	for (int i = 0; i < N_INPUTS; i++)
+		inputs[i].unselect();
+}
+
+void mouseDragged() {
+	if (mouseButton == LEFT) {
+		/*int s = -1;
+		int i = 0;
+		while (s < 0) {
+			s = inputs[i++].checkSelected(mouseX0, mouseY0);
+			if (s >= 0) {
+				inputs[s].checkPotSelected(mouseX0, mouseY0);
+			} else {
+				if (i == N_INPUTS) s = 0;
+			}
+		}*/
+		inputs[selectedInput].checkPotSelected(mouseX0, mouseY0);
 	}
 }

@@ -30,11 +30,13 @@ class Input {
             stroke(255, 0, 0);
         else
             stroke(250);
-        rect(xPos, yPos, width, height);
+        //rect(xPos, yPos, width, height);
+        noFill();
         pushMatrix();
-        translate(xPos + width * .25, yPos);
+        translate(xPos, yPos);
         for (int i = 0; i < N_STEPPERS; i++)
             pots[i].display();
+        pots[selectedPot].display();
         popMatrix();
     }
 
@@ -47,7 +49,7 @@ class Input {
             int s = -1;
             int i = 0;
             while (s < 0) {
-                s = pots[i++].checkSelected(int(x - xPos - width * .25), y - yPos);
+                s = pots[i++].checkSelected(x - xPos, y - yPos);
                 if (s >= 0) {
                     if (s != selectedPot) {
                         pots[s].setSelected(true);
@@ -60,5 +62,25 @@ class Input {
             }
             return id;
         } else return -1;
+    }
+
+    void checkPotSelected(int x, int y) {
+        /*int s = -1;
+        int i = 0;
+        while (s < 0) {
+            s = pots[i++].checkSelectedPotOnly(x - xPos, y - yPos);
+            if (s >= 0) {
+                pots[s].setAngle();
+            } else {
+                if (i == N_STEPPERS) s = 0;
+            }
+        }*/
+        if (pots[selectedPot].checkSelectedPotOnly(x - xPos, y - yPos) >= 0)
+            pots[selectedPot].setAngle();
+    }
+
+    void unselect() {
+        for (int i = 0; i < N_STEPPERS; i++)
+            pots[i].unselect();
     }
 }
