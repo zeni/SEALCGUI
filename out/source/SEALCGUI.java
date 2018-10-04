@@ -22,6 +22,7 @@ public class SEALCGUI extends PApplet {
 //import processing.serial.*;
 final static int N_INPUTS = 2;
 static final int N_STEPPERS = 7;
+static final int N_SLIDERS = 2;
 static final int POT_GAIN = 0;
 static final int POT_HIGH = 1;
 static final int POT_MID = 2;
@@ -30,6 +31,7 @@ static final int POT_FX = 4;
 static final int POT_PAN = 5;
 static final int POT_LEVEL = 6;
 final static int FULL_ANGLE = 300;
+final static int HALF_ANGLE = FULL_ANGLE / 2;
 
 int bgColor, textColor;
 int textSize, textLead;
@@ -47,7 +49,7 @@ public void setup() {
 	bgColor = color(40, 50, 50);
 	textColor = color(230);
 	background(bgColor);
-	textAlign(LEFT, TOP);
+	textAlign(CENTER, CENTER);
 	myFont = loadFont("Arial-BoldMT-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
@@ -80,9 +82,8 @@ public void mousePressed() {
 					inputs[selectedInput].setSelected(false);
 					selectedInput = s;
 				}
-			} else {
-				if (i == N_INPUTS) s = 0;
-			}
+			} else
+			if (i == N_INPUTS) s = 0;
 		}
 	}
 }
@@ -93,19 +94,60 @@ public void mouseReleased() {
 }
 
 public void mouseDragged() {
-	if (mouseButton == LEFT) {
-		/*int s = -1;
-		int i = 0;
-		while (s < 0) {
-			s = inputs[i++].checkSelected(mouseX0, mouseY0);
-			if (s >= 0) {
-				inputs[s].checkPotSelected(mouseX0, mouseY0);
-			} else {
-				if (i == N_INPUTS) s = 0;
-			}
-		}*/
+	if (mouseButton == LEFT)
 		inputs[selectedInput].checkPotSelected(mouseX0, mouseY0);
-	}
+}
+class HSlider implements Slider {
+    int height, width;
+    int xPos, yPos;
+    float value;
+    int id;
+    boolean selected;
+
+
+    HSlider() {}
+
+    HSlider(int i) {
+        id = i;
+        height = 20;
+        width = 100;
+        xPos = 0;
+        yPos = id * (height + 10);
+        value = 50;
+        selected = false;
+    }
+
+    public void display() {
+        pushMatrix();
+        translate(xPos, yPos);
+        fill(30);
+        noStroke();
+        rect(0, 0, width * value / 100, height);
+        noFill();
+        stroke(50);
+        rect(0, 0, width, height);
+        popMatrix();
+    }
+
+    public void setSelected(boolean s) {
+        selected = s;
+    }
+
+    public int checkSelected(int x, int y) {
+        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
+            return id;
+        } else return -1;
+    }
+
+    public void setValue() {
+        int x = mouseX - pmouseX;
+        int inc = 2;
+        if (x != 0) {
+            value += ((x > 0) ? inc : -inc);
+            if (value < 0) value = 0;
+            if (value > 100) value = 100;
+        }
+    }
 }
 class Input {
     Stepper[] steppers = new Stepper[N_STEPPERS];
@@ -139,7 +181,6 @@ class Input {
             stroke(255, 0, 0);
         else
             stroke(250);
-        //rect(xPos, yPos, width, height);
         noFill();
         pushMatrix();
         translate(xPos, yPos);
@@ -174,16 +215,6 @@ class Input {
     }
 
     public void checkPotSelected(int x, int y) {
-        /*int s = -1;
-        int i = 0;
-        while (s < 0) {
-            s = pots[i++].checkSelectedPotOnly(x - xPos, y - yPos);
-            if (s >= 0) {
-                pots[s].setAngle();
-            } else {
-                if (i == N_STEPPERS) s = 0;
-            }
-        }*/
         if (pots[selectedPot].checkSelectedPotOnly(x - xPos, y - yPos) >= 0)
             pots[selectedPot].setAngle();
     }
@@ -195,12 +226,13 @@ class Input {
 }
 class Pot {
     int xPos, yPos;
+    int xOffset, yOffset;
     int height, width;
     int radius;
     int id;
     boolean selected;
     float angle;
-    RangeSlider[] sliders = new RangeSlider[2];
+    Slider[] sliders;
     String name;
     int selectedSlider;
 
@@ -213,17 +245,40 @@ class Pot {
         height = (radius * 3);
         yPos = height * id;
         width = 250;
+        xOffset = xPos + radius * 3 + 20;
+        yOffset = yPos + PApplet.parseInt(.5f * radius);
         selected = false;
-        for (int i = 0; i < 2; i++)
-            sliders[i] = new RangeSlider(i);
+        sliders = new Slider[N_SLIDERS];
+        sliders[1] = new RangeSlider(1);
+        sliders[0] = new HSlider(0);
         switch (id) {
             case POT_GAIN:
-            case POT_LEVEL:
-            case POT_FX:
-                angle = -FULL_ANGLE * .5f;
+                angle = -HALF_ANGLE;
+                name = "GAIN";
                 break;
-            default:
+            case POT_LEVEL:
+                angle = -HALF_ANGLE;
+                name = "LEVEL";
+                break;
+            case POT_PAN:
                 angle = 0;
+                name = "PAN";
+                break;
+            case POT_HIGH:
+                angle = 0;
+                name = "HI";
+                break;
+            case POT_MID:
+                angle = 0;
+                name = "MID";
+                break;
+            case POT_LOW:
+                angle = 0;
+                name = "LOW";
+                break;
+            case POT_FX:
+                angle = -HALF_ANGLE;
+                name = "FX";
                 break;
         }
         selectedSlider = -1;
@@ -239,13 +294,19 @@ class Pot {
         translate(xPos, yPos);
         rect(0, 0, width, height);
         translate(2 * radius, 1.5f * radius);
+        if (selected)
+            fill(255, 0, 0);
+        else
+            fill(20);
+        text(name, 0, 0);
+        noFill();
         rotateZ(radians(angle));
         ellipse(0, 0, 2 * radius, 2 * radius);
         triangle(0, -radius - 10, -5, -radius, 5, -radius);
         popMatrix();
         pushMatrix();
-        translate(xPos + radius * 3 + 20, yPos + .5f * radius);
-        for (int i = 0; i < 2; i++)
+        translate(xOffset, yOffset);
+        for (int i = 0; i < N_SLIDERS; i++)
             sliders[i].display();
         popMatrix();
 
@@ -260,48 +321,36 @@ class Pot {
     }
 
     public int checkSelected(int x, int y) {
-        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
+        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height))
             return id;
-        } else {
-            /*int s = -1;
-            int i = 0;
-            while (s < 0) {
-                s = sliders[i++].checkSelected(x - (xPos + radius * 3 + 20), int(y - (yPos + .5 * radius)));
-                if (s >= 0) {
-                    sliders[s].setValue();
-                } else {
-                    if (i == 2) s = 0;
-                }
-            }*/
+        else
             return -1;
-        }
     }
 
     public int checkSelectedPotOnly(int x, int y) {
-        if (distance(x - 2 * radius, PApplet.parseInt(y - 1.5f * radius))) {
+        if (distance(x - 2 * radius, PApplet.parseInt(y - 1.5f * radius)))
             return id;
-        } else {
+        else {
             if (selectedSlider < 0) {
                 int s = -1;
                 int i = 0;
                 while (s < 0) {
-                    s = sliders[i++].checkSelected(x - (xPos + radius * 3 + 20), PApplet.parseInt(y - (yPos + .5f * radius)));
+                    s = sliders[i++].checkSelected(x - xOffset, y - yOffset);
                     if (s >= 0) {
                         selectedSlider = s;
-                        sliders[s].setSelected(true);
-                        sliders[s].setValue();
+                        sliders[selectedSlider].setSelected(true);
+                        sliders[selectedSlider].setValue();
                     } else {
-                        if (i == 2) s = 0;
+                        if (i == N_SLIDERS) s = 0;
                     }
                 }
             } else {
-                if (sliders[selectedSlider].checkSelected(x - (xPos + radius * 3 + 20), PApplet.parseInt(y - (yPos + .5f * radius))) >= 0)
+                if (sliders[selectedSlider].checkSelected(x - xOffset, y - yOffset) >= 0)
                     sliders[selectedSlider].setValue();
             }
-            return -1;
         }
+        return -1;
     }
-
 
     public boolean distance(int x, int y) {
         float d = sqrt(pow(x - xPos, 2) + pow(y - yPos, 2));
@@ -325,11 +374,11 @@ class Pot {
 
     public void unselect() {
         selectedSlider = -1;
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < N_SLIDERS; i++)
             sliders[i].setSelected(false);
     }
 }
-class RangeSlider {
+class RangeSlider implements Slider {
     int height, width;
     int xPos, yPos;
     float valueStart, valueEnd;
@@ -373,7 +422,6 @@ class RangeSlider {
     }
 
     public int checkSelected(int x, int y) {
-        println(selected);
         if (selected) {
             if (valueStartSelected)
                 x += width * valueStart / 100;
@@ -381,87 +429,42 @@ class RangeSlider {
                 x += width * valueEnd / 100;
             return id;
         } else {
-            if ((x > xPos + width * valueStart / 100 - 5) && (x < xPos + width * valueStart / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4)) {
+            if (checkHandle(x, y, valueStart)) {
                 valueStartSelected = true;
-                println(valueStartSelected);
                 return id;
-            } else if ((x > xPos + width * valueEnd / 100 - 5) && (x < xPos + width * valueEnd / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4)) {
+            } else if (checkHandle(x, y, valueEnd)) {
                 valueStartSelected = false;
-                println(valueStartSelected);
                 return id;
-            } else {
-                println("ns");
+            } else
                 return -1;
-            }
         }
+    }
+
+    public boolean checkHandle(int x, int y, float v) {
+        return ((x > xPos + width * v / 100 - 5) && (x < xPos + width * v / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4));
     }
 
     public void setValue() {
         int x = mouseX - pmouseX;
-        println(x);
+        int inc = 2;
         if (x != 0) {
             if (valueStartSelected) {
-                valueStart += ((x > 0) ? 1 : -1);
+                valueStart += ((x > 0) ? inc : -inc);
                 if (valueStart < 0) valueStart = 0;
                 if (valueStart > valueEnd) valueStart = valueEnd;
             } else {
-                valueEnd += ((x > 0) ? 1 : -1);
+                valueEnd += ((x > 0) ? inc : -inc);
                 if (valueEnd < valueStart) valueEnd = valueStart;
                 if (valueEnd > 100) valueEnd = 100;
             }
         }
     }
 }
-class Slider {
-    int height, width;
-    int xPos, yPos;
-    float value;
-    int id;
-    boolean selected;
-
-
-    Slider() {}
-
-    Slider(int i) {
-        id = i;
-        height = 20;
-        width = 100;
-        xPos = 0;
-        yPos = id * (height + 10);
-        value = 50;
-        selected = false;
-    }
-
-    public void display() {
-        pushMatrix();
-        translate(xPos, yPos);
-        fill(30);
-        noStroke();
-        rect(0, 0, width * value / 100, height);
-        noFill();
-        stroke(50);
-        rect(0, 0, width, height);
-        popMatrix();
-    }
-
-    public boolean getSelected() {
-        return selected;
-    }
-
-    public int checkSelected(int x, int y) {
-        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
-            return id;
-        } else return -1;
-    }
-
-    public void setValue() {
-        int x = mouseX - pmouseX;
-        if (x != 0) {
-            value += ((x > 0) ? 1 : -1);
-            if (value < 0) value = 0;
-            if (value > 100) value = 100;
-        }
-    }
+interface Slider {
+    public void display();
+    public void setSelected(boolean s);
+    public int checkSelected(int x, int y);
+    public void setValue();
 }
 class Stepper {
     int realSteps;

@@ -30,7 +30,6 @@ class Input {
             stroke(255, 0, 0);
         else
             stroke(250);
-        //rect(xPos, yPos, width, height);
         noFill();
         pushMatrix();
         translate(xPos, yPos);
@@ -65,16 +64,6 @@ class Input {
     }
 
     void checkPotSelected(int x, int y) {
-        /*int s = -1;
-        int i = 0;
-        while (s < 0) {
-            s = pots[i++].checkSelectedPotOnly(x - xPos, y - yPos);
-            if (s >= 0) {
-                pots[s].setAngle();
-            } else {
-                if (i == N_STEPPERS) s = 0;
-            }
-        }*/
         if (pots[selectedPot].checkSelectedPotOnly(x - xPos, y - yPos) >= 0)
             pots[selectedPot].setAngle();
     }

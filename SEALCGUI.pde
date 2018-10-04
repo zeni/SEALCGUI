@@ -6,6 +6,7 @@
 //import processing.serial.*;
 final static int N_INPUTS = 2;
 static final int N_STEPPERS = 7;
+static final int N_SLIDERS = 2;
 static final int POT_GAIN = 0;
 static final int POT_HIGH = 1;
 static final int POT_MID = 2;
@@ -14,6 +15,7 @@ static final int POT_FX = 4;
 static final int POT_PAN = 5;
 static final int POT_LEVEL = 6;
 final static int FULL_ANGLE = 300;
+final static int HALF_ANGLE = FULL_ANGLE / 2;
 
 color bgColor, textColor;
 int textSize, textLead;
@@ -31,7 +33,7 @@ void setup() {
 	bgColor = color(40, 50, 50);
 	textColor = color(230);
 	background(bgColor);
-	textAlign(LEFT, TOP);
+	textAlign(CENTER, CENTER);
 	myFont = loadFont("Arial-BoldMT-16.vlw");
 	textSize = 16;
 	textFont(myFont, textSize);
@@ -64,9 +66,8 @@ void mousePressed() {
 					inputs[selectedInput].setSelected(false);
 					selectedInput = s;
 				}
-			} else {
-				if (i == N_INPUTS) s = 0;
-			}
+			} else
+			if (i == N_INPUTS) s = 0;
 		}
 	}
 }
@@ -77,17 +78,6 @@ void mouseReleased() {
 }
 
 void mouseDragged() {
-	if (mouseButton == LEFT) {
-		/*int s = -1;
-		int i = 0;
-		while (s < 0) {
-			s = inputs[i++].checkSelected(mouseX0, mouseY0);
-			if (s >= 0) {
-				inputs[s].checkPotSelected(mouseX0, mouseY0);
-			} else {
-				if (i == N_INPUTS) s = 0;
-			}
-		}*/
+	if (mouseButton == LEFT)
 		inputs[selectedInput].checkPotSelected(mouseX0, mouseY0);
-	}
 }

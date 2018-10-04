@@ -1,4 +1,4 @@
-class RangeSlider {
+class RangeSlider implements Slider {
     int height, width;
     int xPos, yPos;
     float valueStart, valueEnd;
@@ -49,10 +49,10 @@ class RangeSlider {
                 x += width * valueEnd / 100;
             return id;
         } else {
-            if ((x > xPos + width * valueStart / 100 - 5) && (x < xPos + width * valueStart / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4)) {
+            if (checkHandle(x, y, valueStart)) {
                 valueStartSelected = true;
                 return id;
-            } else if ((x > xPos + width * valueEnd / 100 - 5) && (x < xPos + width * valueEnd / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4)) {
+            } else if (checkHandle(x, y, valueEnd)) {
                 valueStartSelected = false;
                 return id;
             } else
@@ -60,15 +60,20 @@ class RangeSlider {
         }
     }
 
+    boolean checkHandle(int x, int y, float v) {
+        return ((x > xPos + width * v / 100 - 5) && (x < xPos + width * v / 100 + 5) && (y > yPos - 2) && (y < yPos + height + 4));
+    }
+
     void setValue() {
         int x = mouseX - pmouseX;
+        int inc = 2;
         if (x != 0) {
             if (valueStartSelected) {
-                valueStart += ((x > 0) ? 1 : -1);
+                valueStart += ((x > 0) ? inc : -inc);
                 if (valueStart < 0) valueStart = 0;
                 if (valueStart > valueEnd) valueStart = valueEnd;
             } else {
-                valueEnd += ((x > 0) ? 1 : -1);
+                valueEnd += ((x > 0) ? inc : -inc);
                 if (valueEnd < valueStart) valueEnd = valueStart;
                 if (valueEnd > 100) valueEnd = 100;
             }
