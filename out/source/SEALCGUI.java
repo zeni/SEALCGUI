@@ -1446,7 +1446,6 @@ class Stepper implements Motor {
     }
 
     public void absoluteStepsDir() {
-        println(absoluteStepsIdle);
         if (mode != MODE_IDLE) {
             currentSteps += inc;
             if (currentDir > 0)
@@ -1468,14 +1467,12 @@ class Stepper implements Motor {
                 SD();
                 break;
             case MODE_RO:
-                println(absoluteSteps);
                 RO();
                 break;
             case MODE_RP:
                 RP();
                 break;
             case MODE_RA:
-                println("ra: " + absoluteSteps);
                 RA();
                 break;
             case MODE_RW:
@@ -1505,17 +1502,17 @@ class Stepper implements Motor {
     public void RO() {
         if (speed > 0) {
             if ((millis() - timeMS) >= speed) {
-                int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
+                int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps)+1;
                 if (turns == 0) {
-                    if (currentSteps >= nSteps * iturns) {
-                        currentSteps %= nSteps;
+                    if (currentSteps >= nSteps * iturns-1) {
+                        //currentSteps %= nSteps;
                         deQ();
                     }
                 } else {
                     if (currentSteps >= steps)
                         ST();
                     else {
-                        if (currentSteps >= nSteps * iturns)
+                        if (currentSteps >= nSteps * iturns-1)
                             deQ();
                     }
 
