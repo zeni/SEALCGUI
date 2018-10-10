@@ -1502,17 +1502,16 @@ class Stepper implements Motor {
     public void RO() {
         if (speed > 0) {
             if ((millis() - timeMS) >= speed) {
-                int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps)+1;
+                int iturns = floor(PApplet.parseFloat(currentSteps) / nSteps) + 1;
                 if (turns == 0) {
-                    if (currentSteps >= nSteps * iturns-1) {
-                        //currentSteps %= nSteps;
+                    if (currentSteps >= nSteps * iturns - inc) {
                         deQ();
                     }
                 } else {
                     if (currentSteps >= steps)
                         ST();
                     else {
-                        if (currentSteps >= nSteps * iturns-1)
+                        if (currentSteps >= nSteps * iturns - inc)
                             deQ();
                     }
 
