@@ -165,7 +165,7 @@ class Input {
         selectedPot = POT_LEVEL;
         selected = false;
         yPos = 10;
-        width = 250;
+        width = 260;
         height = 700;
         xPos = 10 * (id + 1) + id * width;
         for (int i = 0; i < N_STEPPERS; i++) {
@@ -235,6 +235,7 @@ class Pot {
     Slider[] sliders;
     String name;
     int selectedSlider;
+    TickBox sweepTickBox;
 
     Pot() {}
 
@@ -244,13 +245,14 @@ class Pot {
         xPos = 0;
         height = (radius * 3);
         yPos = height * id;
-        width = 250;
+        width = 260;
         xOffset = xPos + radius * 3 + 20;
         yOffset = yPos + PApplet.parseInt(.5f * radius);
         selected = false;
         sliders = new Slider[N_SLIDERS];
         sliders[1] = new RangeSlider(1);
         sliders[0] = new HSlider(0);
+        sweepTickBox = new TickBox(0);
         switch (id) {
             case POT_GAIN:
                 angle = -HALF_ANGLE;
@@ -308,6 +310,8 @@ class Pot {
         translate(xOffset, yOffset);
         for (int i = 0; i < N_SLIDERS; i++)
             sliders[i].display();
+        translate(120, 0);
+        sweepTickBox.display();
         popMatrix();
 
     }
@@ -321,9 +325,10 @@ class Pot {
     }
 
     public int checkSelected(int x, int y) {
-        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height))
+        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
+            sweepTickBox.checkSelected(x - xOffset - 120, y - yOffset);
             return id;
-        else
+        } else
             return -1;
     }
 
@@ -534,6 +539,53 @@ class Stepper {
             absoluteSteps -= inc;
         else absoluteSteps += inc;
         absoluteSteps %= nSteps;
+    }
+}
+class TickBox {
+    int height, width;
+    int xPos, yPos;
+    boolean value;
+    int id;
+    boolean selected;
+
+    TickBox() {}
+
+    TickBox(int i) {
+        id = i;
+        height = 20;
+        width = 20;
+        xPos = 0;
+        yPos = 0;
+        value = false;
+        selected = false;
+    }
+
+    public void display() {
+        pushMatrix();
+        translate(xPos, yPos);
+        noFill();
+        stroke(50);
+        rect(0, 0, width, height);
+        if (value) {
+            fill(30);
+            noStroke();
+            rect(2, 2, width - 4, height - 4);
+        }
+        popMatrix();
+    }
+
+    public void setSelected(boolean s) {
+        selected = s;
+    }
+
+    public void checkSelected(int x, int y) {
+        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
+            value = !value;
+        }
+    }
+
+    public void setValue() {
+        value = !value;
     }
 }
   public void settings() { 	size(1200, 800, P3D); }

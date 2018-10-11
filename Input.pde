@@ -14,7 +14,7 @@ class Input {
         selectedPot = POT_LEVEL;
         selected = false;
         yPos = 10;
-        width = 250;
+        width = 260;
         height = 700;
         xPos = 10 * (id + 1) + id * width;
         for (int i = 0; i < N_STEPPERS; i++) {

@@ -9,6 +9,7 @@ class Pot {
     Slider[] sliders;
     String name;
     int selectedSlider;
+    TickBox sweepTickBox;
 
     Pot() {}
 
@@ -18,13 +19,14 @@ class Pot {
         xPos = 0;
         height = (radius * 3);
         yPos = height * id;
-        width = 250;
+        width = 260;
         xOffset = xPos + radius * 3 + 20;
         yOffset = yPos + int(.5 * radius);
         selected = false;
         sliders = new Slider[N_SLIDERS];
         sliders[1] = new RangeSlider(1);
         sliders[0] = new HSlider(0);
+        sweepTickBox = new TickBox(0);
         switch (id) {
             case POT_GAIN:
                 angle = -HALF_ANGLE;
@@ -82,6 +84,8 @@ class Pot {
         translate(xOffset, yOffset);
         for (int i = 0; i < N_SLIDERS; i++)
             sliders[i].display();
+        translate(120, 0);
+        sweepTickBox.display();
         popMatrix();
 
     }
@@ -95,9 +99,10 @@ class Pot {
     }
 
     int checkSelected(int x, int y) {
-        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height))
+        if ((x > xPos) && (x < xPos + width) && (y > yPos) && (y < yPos + height)) {
+            sweepTickBox.checkSelected(x - xOffset - 120, y - yOffset);
             return id;
-        else
+        } else
             return -1;
     }
 
